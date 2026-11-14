@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.db
+*.sqlite
+.env
+.pytest_cache/
+# Keep large source and derived data files out of Git.
+data/raw/**
+data/processed/**
+data/harmonized/**
+!data/raw/modis/.gitkeep
+!data/raw/viirs/.gitkeep
+FireScope_March2012_Pilot_Review.zip
+FireScope_March2012_Pilot_Review/

@@ -1,0 +1,11 @@
+sensor,metric,value
+VIIRS,rows,8726139
+VIIRS,min_date,2012-01-21T00:00:00
+VIIRS,max_date,2026-08-01T00:00:00
+VIIRS,invalid_coordinates,0.0
+VIIRS,invalid_datetime,0.0
+VIIRS,missing_frp,0.0
+VIIRS,missing_scan_track,0.0
+VIIRS,satellite_values,1
+VIIRS,duplicate_key_groups,0
+VIIRS,excess_duplicate_rows,0

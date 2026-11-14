@@ -1,0 +1,11 @@
+sensor,metric,value
+MODIS,rows,1232510
+MODIS,min_date,2012-01-21T00:00:00
+MODIS,max_date,2026-08-31T00:00:00
+MODIS,invalid_coordinates,0.0
+MODIS,invalid_datetime,0.0
+MODIS,missing_frp,0.0
+MODIS,missing_scan_track,0.0
+MODIS,satellite_values,2
+MODIS,duplicate_key_groups,0
+MODIS,excess_duplicate_rows,0

@@ -1,0 +1,5 @@
+relationship_type,candidate_pair_count,distinct_modis_detections,distinct_viirs_detections,pct_of_candidate_pairs,median_distance_km,p95_distance_km,median_time_diff_minutes,p95_time_diff_minutes
+one_to_one,2097,2097,2097,2.4141,0.585149230769949,1.4519307997331048,28.0,176.0
+one_modis_to_many_viirs,17565,5433,17565,20.2215,0.7488671340074547,1.721823508371216,36.0,202.0
+many_modis_to_one_viirs,1867,1867,1001,2.1494,0.8521673445896548,1.8049031093352914,37.0,161.69999999999982
+many_to_many,65334,10691,21456,75.215,0.9891890821569547,1.9222842519111594,26.0,174.0

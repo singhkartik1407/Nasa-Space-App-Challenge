@@ -1,0 +1,99 @@
+{
+  "analysis": "Full candidate-pair graph diagnostics",
+  "processing_window_utc": {
+    "start_date_inclusive": "2012-03-01",
+    "end_date_inclusive": "2012-03-31",
+    "end_timestamp_exclusive": "2012-04-01T00:00:00Z"
+  },
+  "candidate_superset_configuration": {
+    "maximum_time_difference_hours": 6.0,
+    "additional_spatial_buffer_km": 0.5,
+    "footprint_radius_formula": "0.5 * sqrt(scan_km^2 + track_km^2)",
+    "centre_distance_method": "Haversine great-circle distance",
+    "spatial_rule": "distance_km <= MODIS radius + VIIRS radius + extra buffer",
+    "search_radius_cap": null
+  },
+  "input_files": {
+    "candidate_superset": "D:\\FireScope\\data\\harmonized\\matching_20120301_20120331\\candidate_pairs_superset.parquet",
+    "modis_common_period": "D:\\FireScope\\data\\processed\\common_period\\modis_common_20120121_20260714.parquet",
+    "viirs_common_period": "D:\\FireScope\\data\\processed\\common_period\\viirs_common_20120121_20260714.parquet"
+  },
+  "input_detection_counts_in_utc_window": {
+    "modis": 30161,
+    "viirs": 182644
+  },
+  "candidate_graph_integrity": {
+    "raw_candidate_rows": 86863,
+    "unique_candidate_pairs": 86863,
+    "duplicate_pair_groups": 0,
+    "duplicate_pair_excess_rows": 0,
+    "rows_with_missing_pair_ids": 0,
+    "rows_with_unparseable_timestamps": 0,
+    "pairs_with_invalid_distance": 0,
+    "pairs_with_invalid_time_difference": 0,
+    "pairs_outside_recorded_spatial_threshold": 0,
+    "pairs_over_6_hour_superset_time_limit": 0,
+    "modis_with_candidates": 18579,
+    "viirs_with_candidates_including_margin": 41748,
+    "viirs_with_candidates_inside_window": 41748,
+    "viirs_with_candidates_outside_window": 0,
+    "viirs_with_unparsed_timestamp": 0,
+    "candidate_pairs_using_margin_viirs_rows": 0,
+    "min_modis_candidate_timestamp_utc": "2012-03-01 03:46:00+00:00",
+    "max_modis_candidate_timestamp_utc": "2012-03-31 20:57:00+00:00",
+    "min_viirs_candidate_timestamp_utc": "2012-03-01 06:15:00+00:00",
+    "max_viirs_candidate_timestamp_utc": "2012-03-31 21:06:00+00:00"
+  },
+  "candidate_pair_statistics": {
+    "candidate_pair_count": 86863,
+    "modis_with_candidates": 18579,
+    "viirs_with_candidates_including_margin": 41748,
+    "mean_distance_km": 0.9774370228923166,
+    "median_distance_km": 0.9237983435781157,
+    "p90_distance_km": 1.6064763870218712,
+    "p95_distance_km": 1.8775249142611048,
+    "p99_distance_km": 2.6539076504967816,
+    "max_distance_km": 3.5715763999927064,
+    "mean_time_diff_minutes": 52.21343955424059,
+    "median_time_diff_minutes": 28.0,
+    "p90_time_diff_minutes": 148.0,
+    "p95_time_diff_minutes": 178.0,
+    "p99_time_diff_minutes": 235.0,
+    "max_time_diff_minutes": 285.0,
+    "mean_spatial_threshold_margin_km": 0.8442763920717623,
+    "median_spatial_threshold_margin_km": 0.822744670525003,
+    "min_spatial_threshold_margin_km": 1.0564882791719299e-05,
+    "pearson_frp_correlation_descriptive_only": 0.11701505257771402
+  },
+  "relationship_type_counts_for_superset": {
+    "one_modis_to_many_viirs": 17565,
+    "many_to_many": 65334,
+    "many_modis_to_one_viirs": 1867,
+    "one_to_one": 2097
+  },
+  "interpretation": {
+    "candidate_links_are_not_confirmed_physical_fire_identity": true,
+    "degree_counts_are_graph_connectivity_not_confidence_scores": true,
+    "threshold_degree_counts_are_recomputed_per_experiment": true,
+    "zero_candidate_means_no_candidate_under_configured_rule_only": true,
+    "sensor_exclusivity": "coverage_unverified; do not label unmatched observations as sensor-exclusive fires",
+    "frp_correlation": "Descriptive only; candidate edges are dependent and sensor FRP values are not interchangeable.",
+    "viirs_processing_margin": "VIIRS records outside the requested UTC interval may appear as temporal-margin candidates and are counted separately."
+  },
+  "outputs": [
+    "candidate_degree_distribution.csv",
+    "candidate_degree_summary.csv",
+    "relationship_type_summary.csv",
+    "relationship_type_by_threshold.csv",
+    "degree_distribution_by_threshold.csv",
+    "distance_distribution.csv",
+    "time_difference_distribution.csv",
+    "distance_time_joint_bins.csv",
+    "platform_daynight_version_counts.csv",
+    "candidate_pairs_by_modis_utc_day.csv",
+    "highest_degree_detections.csv",
+    "relationship_stratified_review_sample.csv",
+    "candidate_graph_summary.json",
+    "README.txt"
+  ]
+}

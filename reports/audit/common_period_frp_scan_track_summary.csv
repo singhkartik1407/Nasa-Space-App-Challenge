@@ -1,0 +1,3 @@
+sensor,frp_n,frp_mean_mw,frp_median_mw,frp_p90_mw,frp_p95_mw,frp_max_mw,median_scan_km,median_track_km
+MODIS,1232096,26.667153695815962,13.5,47.1,75.9,7528.5,1.2,1.1
+VIIRS,8725086,6.344081774093677,3.69,11.63,17.66,1552.82,0.43,0.43
