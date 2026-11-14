@@ -27,7 +27,7 @@
 - **Source Location:** `D:\FireScope\frontend`
 - **Backup Directory:** `D:\FireScope\frontend_backup` (created before edits, excluding node_modules, dist, and .git).
 - **Environment:** Configured for live backend (`VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`, `VITE_USE_MOCK_DATA=false`).
-- **Build Status:** Strict TypeScript check (`tsc -b`) and Vite production build pass cleanly in 2.10s.
+- **Build Status:** Strict TypeScript check (`tsc -b`) and Vite production build pass cleanly in 2.52s.
 
 ---
 
@@ -80,3 +80,32 @@
 - `scripts\run_frontend.cmd` — Starts Vite dev server on `http://127.0.0.1:5173`.
 - `scripts\test_frontend.cmd` — Runs strict TypeScript checking (`tsc -b`) and Vite production build.
 - `scripts\run_demo.cmd` — Launches both backend and frontend simultaneously in separate CMD prompts for a complete live demo.
+
+---
+
+## 6. MapLibre Web Worker Loading Resolution & Browser Verification
+
+### 6.1 Root Cause Diagnosis
+- **Failure:** Chrome DevTools console reported `Error: Worker failed to load. Check that the worker URL is correct.` pointing to `maplibre.js:92` and `maplibre-gl.mjs:5`.
+- **Mechanism:** In MapLibre GL JS v6 (`6.18.0`), `maplibre-gl.mjs` attempts to automatically infer the web worker location using `new URL('./maplibre-gl-worker.mjs', import.meta.url)`.
+- When pre-bundled by Vite in development mode, `import.meta.url` pointed to `http://127.0.0.1:5173/node_modules/.vite/deps/react-map-gl_maplibre.js`.
+- The worker script `maplibre-gl-worker.mjs` was not inside Vite's pre-bundle cache directory, causing the relative request `http://127.0.0.1:5173/node_modules/.vite/deps/maplibre-gl-worker.mjs?v=6.18.0` to fail with HTTP 504 / 404.
+- In production build (`npm run build`), Vite/Rolldown bundled application code into `dist/assets/`, but because `maplibre-gl-worker.mjs` was referenced only via dynamic template concatenation inside MapLibre, the standalone worker bundle was not emitted into `dist/assets/`, causing worker requests in production to return 404/HTML fallbacks.
+
+### 6.2 Permanent Solution Applied
+1. **File Changed:** `frontend/src/components/FireMap.tsx`.
+2. **Explicit Worker Asset URL:** Imported `maplibreglWorkerUrl` using Vite's supported asset URL syntax:
+   ```typescript
+   import * as maplibregl from "maplibre-gl";
+   import maplibreglWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+   ```
+3. **Worker URL Registration:** Explicitly called `maplibregl.setWorkerUrl(maplibreglWorkerUrl)`. In Vite dev mode, this resolves to `/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs` (served with HTTP 200). In production build, Vite emits the worker as `dist/assets/maplibre-gl-worker-[hash].mjs` (519.54 kB) and injects the asset path into the bundle.
+4. **Library Binding:** Passed `mapLib={maplibregl}` explicitly to `<MapGL>` to guarantee that `react-map-gl` uses the configured instance.
+
+### 6.3 Browser Runtime Verification Results
+- **Automated Build:** `npx tsc -b` and `npm run build` completed with code 0 in 2.52s.
+- **Console Errors:** `0` console errors detected across the full browser session (visited origin `http://127.0.0.1:5173`).
+- **Map Rendering:** OpenStreetMap raster tiles rendered without errors; navigation zoom controls (`+` / `-`) and dynamic scale indicator (500 km -> 300 km -> 200 km) fully functional.
+- **Hotspots & Layers:** MODIS (orange circle) and VIIRS (blue circles) rendered 500 detections in viewport. Layer visibility checkboxes successfully toggled display on/off.
+- **Observation Popups:** Interactive clicks on fire hotspot dots successfully displayed complete detection telemetry (platform/sensor, UTC timestamp, coordinates, FRP in MW, confidence, day/night flag, and observation ID).
+- **Dashboard Integrity:** March 2024 cards (MODIS: 14,139, VIIRS: 103,369, Candidate Pairs: 19,949) verified active with live backend connectivity.
