@@ -1,7 +1,14 @@
 ﻿import { useEffect, useState, useMemo } from "react";
 import MapGL, { NavigationControl, ScaleControl, Source, Layer, Popup } from "react-map-gl/maplibre";
+import * as maplibregl from "maplibre-gl";
+import maplibreglWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { getMapDetections, type MapDetectionProperties } from "../lib/api/map";
+
+// Explicitly configure the web worker URL via Vite's asset URL resolution.
+// This ensures the worker script is properly served in Vite dev mode and copied
+// to dist/assets/ during production builds with cache-busted hashing.
+maplibregl.setWorkerUrl(maplibreglWorkerUrl);
 
 const mapStyle = {
   version: 8 as const,
@@ -132,6 +139,7 @@ export default function FireMap({ compact = false, filters }: FireMapProps) {
   return (
     <div className={`fire-map ${compact ? "compact-map" : ""}`}>
       <MapGL
+        mapLib={maplibregl}
         initialViewState={{
           longitude: 82,
           latitude: 22,
