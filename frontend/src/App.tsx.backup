@@ -1,0 +1,207 @@
+﻿import { useState } from "react";
+import {
+  Activity, BarChart3, CalendarDays, ChevronDown, CircleHelp,
+  Crosshair, Download, Flame, Layers3, LayoutDashboard, Map,
+  Radio, Settings2, ShieldCheck, SlidersHorizontal, Target, Zap
+} from "lucide-react";
+import "./App.css";
+import FireMap from "./components/FireMap";
+
+const initialFilters = {
+  start: "2012-01-21",
+  end: "2026-07-14",
+  sensor: "BOTH",
+  platform: "ALL",
+  daynight: "ALL",
+};
+
+const navigation = [
+  { label: "Dashboard", icon: LayoutDashboard },
+  { label: "Fire map", icon: Map },
+  { label: "Activity calendar", icon: CalendarDays },
+  { label: "Analytics", icon: BarChart3 },
+  { label: "Match explorer", icon: Crosshair },
+];
+
+const stats = [
+  { label: "MODIS DETECTIONS", value: "1,232,096", sub: "Terra + Aqua", icon: Flame, color: "orange" },
+  { label: "VIIRS DETECTIONS", value: "8,725,086", sub: "Suomi-NPP", icon: Radio, color: "blue" },
+  { label: "CANDIDATE PAIRS", value: "—", sub: "Awaiting API data", icon: Crosshair, color: "purple" },
+  { label: "AMBIGUOUS PAIRS", value: "—", sub: "Awaiting API data", icon: Target, color: "green" },
+];
+
+const bars = [34, 46, 40, 55, 49, 66, 59, 75, 62, 84, 72, 91];
+const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+function App() {
+  const [filters, setFilters] = useState(initialFilters);
+  const [activePage, setActivePage] = useState("Dashboard");
+
+  const updateFilter = (key: string, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetFilters = () => setFilters(initialFilters);
+
+  const platforms =
+    filters.sensor === "MODIS"
+      ? [{ value: "ALL", label: "All platforms" }, { value: "TERRA", label: "Terra" }, { value: "AQUA", label: "Aqua" }]
+      : filters.sensor === "VIIRS"
+        ? [{ value: "SNPP", label: "Suomi-NPP" }]
+        : [{ value: "ALL", label: "All platforms" }, { value: "TERRA", label: "Terra" }, { value: "AQUA", label: "Aqua" }, { value: "SNPP", label: "Suomi-NPP" }];
+
+  const changeSensor = (value: string) => {
+    setFilters((current) => ({
+      ...current,
+      sensor: value,
+      platform: value === "VIIRS" ? "SNPP" : "ALL",
+    }));
+  };
+
+  const pageDescriptions: Record<string, string> = {
+    "Fire map": "Explore the geographic distribution of satellite detection records across India.",
+    "Activity calendar": "Explore monthly and seasonal patterns in satellite detection activity.",
+    "Analytics": "Compare sensor-specific trends and historical activity patterns.",
+    "Match explorer": "Examine candidate spatial-temporal relationships between MODIS and VIIRS records.",
+  };
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark"><Flame size={23} /></div>
+          <div>
+            <div className="brand-name">Fire<span>Scope</span></div>
+            <div className="brand-caption">SATELLITE INTELLIGENCE</div>
+          </div>
+        </div>
+
+        <div className="nav-label">WORKSPACE</div>
+        <nav className="navigation">
+          {navigation.map(({ label, icon: Icon }) => (
+            <button
+              key={label}
+              className={`nav-item ${activePage === label ? "active" : ""}`}
+              onClick={() => setActivePage(label)}
+            >
+              <Icon size={18} /> {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="nav-label tools-label">PREFERENCES</div>
+        <nav className="navigation">
+          <button className="nav-item" onClick={() => setActivePage("Data sources")}><SlidersHorizontal size={18} /> Data sources</button>
+          <button className="nav-item" onClick={() => setActivePage("Settings")}><Settings2 size={18} /> Settings</button>
+          <button className="nav-item" onClick={() => setActivePage("Documentation")}><CircleHelp size={18} /> Documentation</button>
+        </nav>
+
+        <div className="sidebar-bottom">
+          <div className="system-card">
+            <div className="system-icon"><ShieldCheck size={17} /></div>
+            <div><div className="system-title">Data integrity</div><div className="system-subtitle">Mock mode enabled</div></div>
+            <span className="status-dot" />
+          </div>
+          <div className="sidebar-footer">FIRESCOPE <span>·</span> INDIA</div>
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <header className="topbar">
+          <div className="breadcrumb"><span>Workspace</span><span className="crumb-separator">/</span><strong>{activePage}</strong></div>
+          <div className="topbar-right">
+            <div className="demo-pill"><span /> DEMO ENVIRONMENT</div>
+            <button className="icon-button" aria-label="Activity status"><Activity size={18} /></button>
+            <div className="avatar">FS</div>
+          </div>
+        </header>
+
+        <div className="dashboard-content">
+          {activePage === "Dashboard" ? (
+            <>
+              <section className="welcome-section">
+                <div>
+                  <div className="eyebrow"><span className="eyebrow-line" /> INDIA · SATELLITE MONITORING</div>
+                  <h1>Fire activity <span>overview</span></h1>
+                  <p className="page-description">Monitor satellite fire detections, explore activity patterns, and compare sensor observations across India.</p>
+                </div>
+                <button className="export-button" disabled><Download size={16} /> Export data <span className="coming-soon">SOON</span></button>
+              </section>
+
+              <section className="filter-panel">
+                <div className="filter-heading"><SlidersHorizontal size={16} /><span>GLOBAL FILTERS</span><button className="reset-button" onClick={resetFilters}>Reset filters</button></div>
+                <div className="filter-controls">
+                  <label className="filter-control"><CalendarDays size={15} /><span>From</span><input aria-label="Start date" type="date" min="2012-01-21" max="2026-07-14" value={filters.start} onChange={(e) => updateFilter("start", e.target.value)} /></label>
+                  <label className="filter-control"><CalendarDays size={15} /><span>To</span><input aria-label="End date" type="date" min="2012-01-21" max="2026-07-14" value={filters.end} onChange={(e) => updateFilter("end", e.target.value)} /></label>
+                  <label className="filter-control"><Layers3 size={15} /><span>Sensor</span><select aria-label="Sensor" value={filters.sensor} onChange={(e) => changeSensor(e.target.value)}><option value="BOTH">Both sensors</option><option value="MODIS">MODIS</option><option value="VIIRS">VIIRS</option></select></label>
+                  <label className="filter-control"><Radio size={15} /><span>Platform</span><select aria-label="Platform" value={filters.platform} onChange={(e) => updateFilter("platform", e.target.value)}>{platforms.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></label>
+                  <label className="filter-control"><Zap size={15} /><span>Day / Night</span><select aria-label="Day or night" value={filters.daynight} onChange={(e) => updateFilter("daynight", e.target.value)}><option value="ALL">All</option><option value="D">Day</option><option value="N">Night</option></select></label>
+                </div>
+                <div className="filter-note">
+                  Common comparison period: Jan 21, 2012 – Jul 14, 2026. Select dates within this range.
+                </div>
+                {filters.start > filters.end && <div className="filter-error">Start date must be earlier than or equal to end date.</div>}
+                <div className="active-filter-summary">
+                  <strong>Current selection:</strong> {filters.sensor === "BOTH" ? "Both sensors" : filters.sensor} · {filters.platform === "ALL" ? "All applicable platforms" : filters.platform} · {filters.daynight === "ALL" ? "Day and night" : filters.daynight === "D" ? "Daytime" : "Nighttime"} · {filters.start} to {filters.end}
+                </div>
+              </section>
+
+              <section className="section-heading">
+                <div><h2>Detection summary</h2><p>Satellite observation records across the common comparison period</p></div>
+                <span className="section-tag"><span /> HISTORICAL COVERAGE</span>
+              </section>
+
+              <section className="stats-grid">
+                {stats.map((item) => {
+                  const Icon = item.icon;
+                  const hidden = (item.label === "MODIS DETECTIONS" && filters.sensor === "VIIRS") || (item.label === "VIIRS DETECTIONS" && filters.sensor === "MODIS");
+                  return (
+                    <article role="button" tabIndex={hidden ? -1 : 0} onClick={() => { if (item.label.startsWith("MODIS")) changeSensor("MODIS"); else if (item.label.startsWith("VIIRS")) changeSensor("VIIRS"); }} className={`stat-card stat-clickable ${hidden ? "stat-muted" : ""} ${(item.label.startsWith("MODIS") && filters.sensor === "MODIS") || (item.label.startsWith("VIIRS") && filters.sensor === "VIIRS") ? "stat-selected" : ""}`} key={item.label}>
+                      <div className="stat-top"><span className="stat-label">{item.label}</span><span className={`stat-icon ${item.color}`}><Icon size={18} /></span></div>
+                      <div className="stat-value">{hidden ? "—" : item.value}</div>
+                      <div className="stat-bottom"><span className="stat-description">{hidden ? "Not selected" : item.sub}</span></div>
+                    </article>
+                  );
+                })}
+              </section>
+
+              <section className="insight-grid">
+                <article className="panel activity-panel">
+                  <div className="panel-header"><div><h3>Detection activity</h3><p>Illustrative monthly distribution</p></div><span className="small-select">Monthly <ChevronDown size={13} /></span></div>
+                  <div className="chart-legend">{filters.sensor !== "VIIRS" && <><span className="legend-dot modis" /> MODIS</>}{filters.sensor === "BOTH" && <span className="chart-legend-gap" />}{filters.sensor !== "MODIS" && <><span className="legend-dot viirs" /> VIIRS</>}</div>
+                  <div className="chart-area">
+                    <div className="chart-y-labels"><span>High</span><span>Medium</span><span>Low</span></div>
+                    <div className="chart-bars">{bars.map((height, i) => <div className="bar-group" key={months[i]}><div className="bar-pair">{filters.sensor !== "VIIRS" && <div className="chart-bar modis-bar" style={{ height: `${height * .72}%` }} />}{filters.sensor !== "MODIS" && <div className="chart-bar viirs-bar" style={{ height: `${height}%` }} />}</div><span>{months[i]}</span></div>)}</div>
+                  </div>
+                  <div className="chart-disclaimer">Illustrative visualization only · Real chart data will come from the API.</div>
+                </article>
+
+                <article className="panel map-panel">
+                  <div className="panel-header"><div><h3>India fire map</h3><p>Geographic distribution of detections</p></div><span className="map-expand"><Crosshair size={16} /></span></div>
+                  <div className="real-map-container"><FireMap /></div>
+                  <div className="map-footer"><span><span className="status-dot" /> India coverage</span><span>Map data pending</span></div>
+                </article>
+              </section>
+
+              <section className="bottom-note"><div className="note-icon"><ShieldCheck size={19} /></div><div><strong>Scientific data integrity</strong><p>Detection records are not equivalent to unique fires. Candidate pairs represent possible spatial-temporal relationships, not confirmed matches.</p></div><span className="note-link">METHODOLOGY <Crosshair size={14} /></span></section>
+            </>
+          ) : (
+            <section className="module-placeholder">
+              <div className="eyebrow"><span className="eyebrow-line" /> FIRESCOPE WORKSPACE</div>
+              <h1>{activePage}</h1>
+              <p>{pageDescriptions[activePage] || `Manage FireScope ${activePage.toLowerCase()} preferences and information.`}</p>
+              <div className="module-status"><ShieldCheck size={20} /><div><strong>Module planned</strong><span>This section will be implemented in the next development milestones.</span></div></div>
+              <button className="back-button" onClick={() => setActivePage("Dashboard")}>Return to dashboard</button>
+            </section>
+          )}
+
+          <footer className="page-footer"><span>FIRESCOPE · SATELLITE FIRE INTELLIGENCE</span><span>FRONTEND PREVIEW <span className="footer-separator">/</span> MOCK DATA MODE</span></footer>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default App;
+
+

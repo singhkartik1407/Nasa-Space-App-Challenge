@@ -14,3 +14,9 @@ data/harmonized/**
 !data/raw/viirs/.gitkeep
 FireScope_March2012_Pilot_Review.zip
 FireScope_March2012_Pilot_Review/
+frontend_backup/
+frontend-stable-2026-11-14/
+frontend/node_modules/
+frontend/dist/
+*.local
+.env.local
