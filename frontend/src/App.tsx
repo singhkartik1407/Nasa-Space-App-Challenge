@@ -134,9 +134,9 @@ function App() {
 
         <div className="nav-label tools-label">PREFERENCES</div>
         <nav className="navigation">
-          <button className="nav-item" onClick={() => setActivePage("Data sources")}><SlidersHorizontal size={18} /> Data sources</button>
-          <button className="nav-item" onClick={() => setActivePage("Settings")}><Settings2 size={18} /> Settings</button>
-          <button className="nav-item" onClick={() => setActivePage("Documentation")}><CircleHelp size={18} /> Documentation</button>
+          <button className={`nav-item ${activePage === "Data sources" ? "active" : ""}`} onClick={() => setActivePage("Data sources")}><SlidersHorizontal size={18} /> Data sources</button>
+          <button className={`nav-item ${activePage === "Settings" ? "active" : ""}`} onClick={() => setActivePage("Settings")}><Settings2 size={18} /> Settings</button>
+          <button className={`nav-item ${activePage === "Documentation" ? "active" : ""}`} onClick={() => setActivePage("Documentation")}><CircleHelp size={18} /> Documentation</button>
         </nav>
 
         <div className="sidebar-bottom">
@@ -279,7 +279,15 @@ function App() {
                     <article role="button" tabIndex={hidden ? -1 : 0} onClick={() => { if (item.label.startsWith("MODIS")) changeSensor("MODIS"); else if (item.label.startsWith("VIIRS")) changeSensor("VIIRS"); }} className={`stat-card stat-clickable ${hidden ? "stat-muted" : ""} ${(item.label.startsWith("MODIS") && filters.sensor === "MODIS") || (item.label.startsWith("VIIRS") && filters.sensor === "VIIRS") ? "stat-selected" : ""}`} key={item.label}>
                       <div className="stat-top"><span className="stat-label">{item.label}</span><span className={`stat-icon ${item.color}`}><Icon size={18} /></span></div>
                       <div className="stat-value">{hidden ? "—" : summaryLoading ? "Loading..." : summaryError ? "Unavailable" : liveValue == null ? "—" : liveValue.toLocaleString()}</div>
-                      <div className="stat-bottom"><span className="stat-description">{hidden ? "Not selected" : item.sub}</span></div>
+                      <div className="stat-bottom">
+                        <span className="stat-description">
+                          {hidden
+                            ? "Not selected"
+                            : item.label.includes("PAIRS") && !summary?.matching_available
+                              ? "Unavailable (Pilot periods only)"
+                              : item.sub}
+                        </span>
+                      </div>
                     </article>
                   );
                 })}

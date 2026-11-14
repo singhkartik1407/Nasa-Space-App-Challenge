@@ -49,6 +49,7 @@ export default function FireMap({ compact = false, filters }: FireMapProps) {
     features: [],
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<{
     longitude: number;
     latitude: number;
@@ -59,6 +60,7 @@ export default function FireMap({ compact = false, filters }: FireMapProps) {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError(null);
 
     const startDate = filters?.start || "2024-03-01";
     const endDate = filters?.end || "2024-03-05";
@@ -76,7 +78,9 @@ export default function FireMap({ compact = false, filters }: FireMapProps) {
         }
       })
       .catch((err) => {
-        console.warn("Failed to fetch map detections:", err);
+        if (active) {
+          setError(err instanceof Error ? err.message : "Failed to load detections");
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -246,9 +250,11 @@ export default function FireMap({ compact = false, filters }: FireMapProps) {
           <div className="map-layer-message">
             {loading
               ? "Loading hotspot detections..."
-              : showModis || showViirs
-                ? `Showing ${modisCount + viirsCount} observations in viewport`
-                : "All detection layers hidden"}
+              : error
+                ? `Error: ${error}`
+                : showModis || showViirs
+                  ? `Showing ${modisCount + viirsCount} observations in viewport`
+                  : "All detection layers hidden"}
           </div>
         </div>
       )}

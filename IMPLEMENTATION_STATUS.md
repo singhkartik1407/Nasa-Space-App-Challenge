@@ -4,7 +4,7 @@
 **Workspace:** `D:\FireScope`  
 **Repository:** `https://github.com/singhkartik1407/Nasa-Space-App-Challenge`  
 **Environment:** Windows CMD (`cmd.exe`) / Python 3.13.7 (.venv) / Node.js (Vite + React 19)  
-**Overall Status:** **COMPLETED & VERIFIED (Full-Stack Live Integration)**
+**Overall Status:** **COMPLETED & VERIFIED (Full-Stack Live Integration — MVP Demo Ready)**
 
 ---
 
@@ -21,13 +21,13 @@
 - **Metadata Store:** SQLAlchemy 2.1.8 with automatic SQLite fallback (`backend/firescope_metadata.db`) and PostgreSQL readiness.
 - **Domain Geometry:** `backend/domain/thresholds.py` implementing Haversine distance, nominal/footprint radii, and Profiles A through E.
 - **REST Endpoints:** 8 route modules (`health`, `metadata`, `overview`, `detections`, `candidates`, `analytics`, `jobs`).
-- **Tests:** 26 automated unit and regression tests passing in 3.62s.
+- **Tests:** 26 automated unit and regression tests passing in 3.59s.
 
 ### 1.3 Frontend (React 19 + TypeScript + Vite + MapLibre)
 - **Source Location:** `D:\FireScope\frontend`
 - **Backup Directory:** `D:\FireScope\frontend_backup` (created before edits, excluding node_modules, dist, and .git).
 - **Environment:** Configured for live backend (`VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`, `VITE_USE_MOCK_DATA=false`).
-- **Build Status:** Strict TypeScript check (`tsc -b`) and Vite production build pass cleanly in 2.52s.
+- **Build Status:** Strict TypeScript check (`tsc -b`) and Vite production build pass cleanly in 2.42s.
 
 ---
 
@@ -83,14 +83,13 @@
 
 ---
 
-## 6. MapLibre Web Worker Loading Resolution & Browser Verification
+## 6. MapLibre Web Worker Loading Resolution
 
 ### 6.1 Root Cause Diagnosis
-- **Failure:** Chrome DevTools console reported `Error: Worker failed to load. Check that the worker URL is correct.` pointing to `maplibre.js:92` and `maplibre-gl.mjs:5`.
-- **Mechanism:** In MapLibre GL JS v6 (`6.18.0`), `maplibre-gl.mjs` attempts to automatically infer the web worker location using `new URL('./maplibre-gl-worker.mjs', import.meta.url)`.
+- In MapLibre GL JS v6 (`6.18.0`), `maplibre-gl.mjs` attempts to automatically infer the web worker location using `new URL('./maplibre-gl-worker.mjs', import.meta.url)`.
 - When pre-bundled by Vite in development mode, `import.meta.url` pointed to `http://127.0.0.1:5173/node_modules/.vite/deps/react-map-gl_maplibre.js`.
-- The worker script `maplibre-gl-worker.mjs` was not inside Vite's pre-bundle cache directory, causing the relative request `http://127.0.0.1:5173/node_modules/.vite/deps/maplibre-gl-worker.mjs?v=6.18.0` to fail with HTTP 504 / 404.
-- In production build (`npm run build`), Vite/Rolldown bundled application code into `dist/assets/`, but because `maplibre-gl-worker.mjs` was referenced only via dynamic template concatenation inside MapLibre, the standalone worker bundle was not emitted into `dist/assets/`, causing worker requests in production to return 404/HTML fallbacks.
+- The worker script `maplibre-gl-worker.mjs` was not inside Vite's pre-bundle cache directory, causing the relative request to fail with HTTP 504 / 404.
+- In production build (`npm run build`), Vite/Rolldown bundled application code into `dist/assets/`, but because `maplibre-gl-worker.mjs` was referenced only via dynamic template concatenation inside MapLibre, the standalone worker bundle was not emitted into `dist/assets/`.
 
 ### 6.2 Permanent Solution Applied
 1. **File Changed:** `frontend/src/components/FireMap.tsx`.
@@ -102,10 +101,72 @@
 3. **Worker URL Registration:** Explicitly called `maplibregl.setWorkerUrl(maplibreglWorkerUrl)`. In Vite dev mode, this resolves to `/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs` (served with HTTP 200). In production build, Vite emits the worker as `dist/assets/maplibre-gl-worker-[hash].mjs` (519.54 kB) and injects the asset path into the bundle.
 4. **Library Binding:** Passed `mapLib={maplibregl}` explicitly to `<MapGL>` to guarantee that `react-map-gl` uses the configured instance.
 
-### 6.3 Browser Runtime Verification Results
-- **Automated Build:** `npx tsc -b` and `npm run build` completed with code 0 in 2.52s.
-- **Console Errors:** `0` console errors detected across the full browser session (visited origin `http://127.0.0.1:5173`).
-- **Map Rendering:** OpenStreetMap raster tiles rendered without errors; navigation zoom controls (`+` / `-`) and dynamic scale indicator (500 km -> 300 km -> 200 km) fully functional.
-- **Hotspots & Layers:** MODIS (orange circle) and VIIRS (blue circles) rendered 500 detections in viewport. Layer visibility checkboxes successfully toggled display on/off.
-- **Observation Popups:** Interactive clicks on fire hotspot dots successfully displayed complete detection telemetry (platform/sensor, UTC timestamp, coordinates, FRP in MW, confidence, day/night flag, and observation ID).
-- **Dashboard Integrity:** March 2024 cards (MODIS: 14,139, VIIRS: 103,369, Candidate Pairs: 19,949) verified active with live backend connectivity.
+---
+
+## 7. Final End-to-End Browser Acceptance Test Report
+
+Executed across all 8 views against `http://127.0.0.1:5173/` and backend `http://127.0.0.1:8000/`:
+
+### 7.1 Section-by-Section Verification
+
+1. **Dashboard & Global Filters:**
+   - **March 2024 Baseline:** MODIS `14,139`, VIIRS `103,369`, Candidate Pairs `19,949`, Ambiguous Pairs `14,770` — verified exact match.
+   - **March 2012 Date Filter:** MODIS `30,161`, VIIRS `182,644`, Candidate Pairs `44,941`, Ambiguous Pairs `31,804` — verified exact match.
+   - **Sensor Filter Toggle:** Selecting "MODIS" mutes the VIIRS card with "Not selected"; selecting "VIIRS" mutes the MODIS card; selecting "Both sensors" restores both.
+   - **Day / Night Filter:** Selecting "Day" updates March 2012 counts to MODIS `25,699` / VIIRS `148,829`; selecting "Night" updates counts to MODIS `4,462` / VIIRS `33,815`.
+   - **Validation Error Handling:** Setting start date later than end date (e.g. `2024-03-15` to `2024-03-10`) displays `Start date must be earlier than or equal to end date.`
+   - **Reset Filters:** Clicking "Reset filters" restores all parameters to March 2024 baseline.
+
+2. **Fire Map View:**
+   - Full OpenStreetMap raster basemap rendered with MapLibre GL canvas.
+   - Scale bar (500 km) and zoom controls (`+` / `-`) verified functional.
+   - Layer toggles tested: unchecking and re-checking MODIS and VIIRS SNPP toggled circle layers on and off.
+   - Observation click popup tested on live hotspot: displayed Platform (`Aqua (MODIS)`), Coordinates (`21.7370°N, 84.1480°E`), Timestamp (`2024-03-01 07:54 UTC`), FRP (`39.50 MW`), Confidence (`nominal (69%)`), and Footprint Scan $\times$ Track (`1.40 x 1.20 km`).
+
+3. **Activity Calendar View:**
+   - 2024 monthly observation counts rendered across all 12 months (e.g. March: `117,508 obs`).
+   - Year navigation control (`-`) stepped down to 2012: retrieved exact historical monthly counts (March: `212,805 obs`).
+   - Year navigation control (`+`) stepped up to 2026: months August through December clearly displayed `Outside observation window` (distinguishing unavailable data from zero fire activity).
+
+4. **Analytics View:**
+   - FRP percentiles verified strictly separated:
+     - MODIS: Mean `32.7 MW`, Median `17.5 MW`, $p_{95}$ `106.8 MW`, Max `1,326.6 MW`.
+     - VIIRS: Mean `8.6 MW`, Median `3.6 MW`, $p_{95}$ `28.5 MW`, Max `1,332.1 MW`.
+     - Cross-sensor FRP values are never summed.
+   - Product versions verified: MODIS Collection 6.1 (v61.03 for 2024, v6.03 for 2012), VIIRS Collection 2 (v2 throughout).
+   - Relationship Sensitivity Table: Profiles A through E rendered with exact candidate pairs, graph components, and coverage-unverified counts.
+   - Pilot period toggle button switched smoothly between March 2024 and March 2012.
+
+5. **Match Explorer View:**
+   - March 2024 Profile A: `19,949` candidate pairs.
+   - March 2024 Profile B: `24,815` candidate pairs.
+   - March 2012 Profile A: `44,941` candidate pairs.
+   - March 2012 Profile B: `60,179` candidate pairs.
+   - "Per page" selector tested: switching between 10, 20, and 50 records updated page counts and table layout cleanly.
+   - Pagination buttons tested: "Next" and "Previous" transitioned between Page 1 and Page 2 without latency.
+   - Data columns verified: MODIS Record ID, VIIRS Record ID, Distance (km), Time Diff (min), Combined Radii (km), Satellites, FRP (MW), Relationship Badge.
+
+6. **Data Sources View:**
+   - Live Parquet engine status confirmed active (`PARQUET ENGINE ACTIVE`).
+   - Total records verified: `9,957,182` observations across India common observation period (`1,232,096` MODIS + `8,725,086` VIIRS).
+
+7. **Settings View:**
+   - Live backend status confirmed: `FastAPI Connected` (`Online (139ms)`).
+   - Engine and metadata store verified: DuckDB (In-Memory Query Session), SQLAlchemy (Local SQLite / PostgreSQL-ready), 9,957,182 Parquet records.
+
+8. **Documentation View:**
+   - Sections 01–07 verified: About FireScope, Satellite Datasets, Detection Records, Candidate Relationships, Sensor Confidence, Fire Radiative Power, and Data Availability boundaries.
+
+### 7.2 Console Logs, Network, and Stability
+- **Console Errors:** `0` runtime errors or unhandled promise rejections detected across the entire acceptance test session.
+- **Network Requests:** All REST API requests returned `HTTP 200 OK`.
+- **Frontend Unit Tests Inspection:** Inspected `frontend/package.json`. No standalone unit test files (`*.test.ts`, `*.spec.tsx`) were provided by the collaborator; test scripts currently execute strict TypeScript type check (`tsc -b`) and Vite production build (`npm run build`).
+
+### 7.3 Hackathon Launch Commands
+To start both backend and frontend simultaneously for a live demonstration:
+```cmd
+cd /d D:\FireScope
+scripts\run_demo.cmd
+```
+- **Backend API:** `http://127.0.0.1:8000` (OpenAPI Docs: `http://127.0.0.1:8000/docs`)
+- **Frontend UI:** `http://127.0.0.1:5173`
