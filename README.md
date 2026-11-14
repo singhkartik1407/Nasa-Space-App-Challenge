@@ -1,144 +1,106 @@
-# FireScope — MODIS / Suomi-NPP VIIRS starter pipeline
+# FireScope — Active Fire Harmonization Platform
 
-This starter project creates a reproducible first-pass data pipeline for the India FIRMS downloads you selected:
+FireScope harmonizes NASA FIRMS active-fire observations across two sensor families:
+- **MODIS** Collection 6.1 (Terra and Aqua)
+- **Suomi-NPP VIIRS** Collection 2 (375 m)
 
-- MODIS Collection 6.1 (Terra/Aqua)
-- Suomi-NPP VIIRS Collection 2 (375 m)
+It provides high-performance analytical queries directly over normalized Parquet files using DuckDB, evaluates cross-sensor spatiotemporal candidate relationships under configurable threshold profiles (Profile A conservative default, Profile B higher-recall alternative), and serves a stable REST API for frontend dashboards and map views.
 
-It preserves original fields, creates standardized Parquet files, audits data quality, explores cross-sensor candidate matches, retains unmatched observations, and creates monthly/annual analytics.
+---
 
-## Important scientific interpretation
+## Important Scientific Ground Rules
 
-1. A row in FIRMS is a satellite active-fire/thermal-anomaly pixel detection, not automatically a unique wildfire.
-2. The matching algorithm creates **candidate correspondences**, not confirmed identical fires.
-3. Unmatched means no cross-sensor candidate was found under the selected settings. It does not mean that the observation is false.
-4. The code uses `scan` and `track` as approximate pixel dimensions in km when supplied. The half-diagonal is used as an approximate footprint radius. This is not a precise reconstruction of the sensor footprint or a direct geolocation-error estimate.
-5. Missing scan/track values are replaced with nominal fallback values (MODIS 1.0 km; VIIRS 0.375 km) and should be reported as assumed. Inspect the audit before trusting a match result.
-6. MODIS and VIIRS confidence fields are retained as raw sensor-specific values; they are not placed on a common scale.
-7. Detection counts and FRP sums are reported per sensor. Do not add MODIS and VIIRS detections and call the sum a unique-fire count.
+1. **Observations vs Fires:** A FIRMS record is a satellite active-fire/thermal-anomaly pixel detection, not automatically an isolated physical wildfire.
+2. **Candidate Correspondences:** Cross-sensor pairs indicate spatiotemporal proximity within combined footprint bounds; they are **not confirmed ground-truth matches**.
+3. **Coverage Unverified:** Absence of a counterpart detection is labeled as `coverage_unverified`, never as "false detection" or "sensor-exclusive".
+4. **Instrument-Separated FRP:** Fire Radiative Power (MW) differs across instruments due to pixel footprint and sensor saturation characteristics. **Never sum MODIS and VIIRS FRP together**.
+5. **Canonical Timezone:** All internal calculations, filtering, and storage operate in **UTC**. Displays in Indian Standard Time (IST) are labeled explicitly.
+6. **Product Versions:** MODIS transitioned from `6.03` (2012–2022) to `61.03` (2023–2026); VIIRS is version `2`. Version strings are preserved verbatim.
 
-## 1. Install Python and dependencies (Windows)
+---
 
-Use Python 3.11 or 3.12. Open PowerShell or Command Prompt in the extracted `FireScope_Starter` folder:
+## Windows Command Prompt (CMD) Execution
 
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+All operations must be run using standard Windows Command Prompt (`cmd.exe`).
+
+### 1. Environment Setup
+
+Run the backend setup script from a CMD prompt:
+
+```cmd
+cd /d D:\FireScope
+scripts\setup_backend.cmd
 ```
 
-If `py -3.12` is unavailable, use `python -m venv .venv` with your installed Python version.
+This verifies the `.venv` virtual environment, installs backend dependencies (`fastapi`, `uvicorn`, `duckdb`, `pydantic`, `sqlalchemy`, `pytest`), registers package discovery, and verifies data readiness.
 
-## 2. Create the folders
+### 2. Start the Backend API
 
-```powershell
-python scripts\01_create_structure.py
+```cmd
+cd /d D:\FireScope
+scripts\run_backend.cmd
 ```
 
-Copy the original downloaded files into:
+- **API Base URL:** `http://127.0.0.1:8000`
+- **Interactive OpenAPI Documentation:** `http://127.0.0.1:8000/docs`
+- **ReDoc Documentation:** `http://127.0.0.1:8000/redoc`
 
-- `data\raw\modis\` — your MODIS C6.1 CSV
-- `data\raw\viirs\` — your Suomi-NPP VIIRS C2 CSV
+### 3. Run the Automated Test Suite
 
-Do not edit the originals. The conversion script accepts a CSV or a ZIP containing exactly one CSV.
-
-## 3. Convert CSV to Parquet and audit
-
-Replace the two example filenames with your actual filenames:
-
-```powershell
-python scripts\02_convert_and_audit.py --modis "data\raw\modis\YOUR_MODIS_FILE.csv" --viirs "data\raw\viirs\YOUR_VIIRS_FILE.csv" --root .
+```cmd
+cd /d D:\FireScope
+scripts\test_backend.cmd
 ```
 
-For a ZIP input, pass the ZIP path. If the ZIP contains multiple CSV files, extract it first and pass the relevant CSV.
+Runs all 26 pytest unit and integration tests and verifies route handlers against audited March 2012 and March 2024 pilot figures.
 
-The script reads in chunks (default 250,000 rows) to reduce memory use. Change it with `--chunksize 100000` if your computer has limited RAM.
+---
 
-Outputs:
+## Target Architecture & Data Separation
 
-- `data\processed\modis_normalized.parquet`
-- `data\processed\viirs_normalized.parquet`
-- `reports\audit\*_audit_summary.json`
-- `reports\audit\*_data_quality_report.csv` and combined `data_quality_report.csv`
-- annual/monthly counts, platform/confidence/day-night counts, scan/track summaries, duplicate groups, and FRP summaries
-
-The normalized Parquet files retain every input field in `raw_<field>` columns and add standardized columns such as `latitude`, `longitude`, `acq_datetime_utc`, `scan_km`, `track_km`, `frp_mw`, `confidence_raw`, `satellite`, and `row_id`.
-
-## 4. Run exploratory MODIS–VIIRS matching
-
-Start with the default three-hour window and 0.5 km additional buffer:
-
-```powershell
-python scripts\03_match_sensors.py --root . --time-hours 3 --buffer-km 0.5
+```
+D:\FireScope\
+├── data/
+│   ├── processed/common_period/      <- Read-only normalized Parquet inputs (MODIS: 1.23M rows, VIIRS: 8.73M rows)
+│   └── harmonized/                   <- Derived candidate pair superset Parquet files (2012-03, 2024-03)
+├── backend/
+│   ├── config.py                     <- Environment settings & CORS
+│   ├── database.py                   <- Metadata DB engine (PostgreSQL-ready with local SQLite fallback)
+│   ├── models.py                     <- SQLAlchemy ORM models (MatchingJob, ReviewAnnotation)
+│   ├── domain/thresholds.py          <- Shared footprint geometry and threshold profile rules
+│   ├── services/duckdb_service.py    <- High-performance Parquet query service via DuckDB
+│   ├── schemas/                      <- Pydantic v2 schemas for all requests/responses
+│   ├── routers/                      <- FastAPI routers (health, metadata, overview, detections, candidates, analytics, jobs)
+│   └── main.py                       <- FastAPI app factory, CORS, and lifespan
+├── tests/                            <- 26 unit and regression test cases
+├── scripts/
+│   ├── setup_backend.cmd             <- One-click backend setup launcher
+│   ├── run_backend.cmd               <- Server launcher (uvicorn)
+│   └── test_backend.cmd              <- Test suite runner
+└── API_CONTRACT.md                   <- Frozen API specifications and frontend integration guide
 ```
 
-Compare sensitivity with these additional runs. Each run overwrites the previous matching output, so copy the `data\harmonized` folder and `matching_summary.json` to a named experiment folder before changing parameters:
+---
 
-```powershell
-python scripts\03_match_sensors.py --root . --time-hours 1 --buffer-km 0
-python scripts\03_match_sensors.py --root . --time-hours 6 --buffer-km 1
-python scripts\03_match_sensors.py --root . --time-hours 3 --buffer-km 2
-```
+## API Surface Overview
 
-These values are experiment settings, not universal scientific thresholds. Keep a record of which parameter combination produced each result. The script also records when nominal pixel-size fallbacks or the maximum search-radius cap were used. The script uses a haversine distance between pixel centres and a footprint-aware candidate threshold. It processes VIIRS records from the same UTC date and adjacent dates to handle matches near midnight.
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Application liveness probe |
+| `GET` | `/ready` | Parquet data storage readiness and row counts |
+| `GET` | `/api/v1/metadata` | Supported window, sensors, versions, and matching profiles |
+| `GET` | `/api/v1/overview` | High-level summary cards (counts, FRP, matching status) |
+| `GET` | `/api/v1/detections` | Paginated fire detections with viewport, date, sensor, and FRP filters |
+| `GET` | `/api/v1/detections/{row_id}` | Detailed detection inspection with attached candidate matches |
+| `GET` | `/api/v1/candidates` | Paginated candidate pairs under Profile A or B with bbox filter |
+| `GET` | `/api/v1/candidates/{candidate_id}` | Complete candidate pair detail and footprint geometry metrics |
+| `GET` | `/api/v1/analytics/activity` | Daily or monthly detection timeseries (UTC or IST) |
+| `GET` | `/api/v1/analytics/frp` | Sensor-separated FRP percentiles (p25, median, p75, p95, max) |
+| `GET` | `/api/v1/analytics/sensors` | MODIS vs VIIRS sensor specifications and product versions |
+| `GET` | `/api/v1/analytics/relationships` | Graph component and degree sensitivity metrics |
+| `POST` | `/api/v1/matching/jobs` | Submit/trigger candidate matching job for a date window |
+| `GET` | `/api/v1/matching/jobs/{job_id}` | Get matching job execution progress and output paths |
+| `POST` | `/api/v1/review/annotations` | Save human/expert adjudication for review sample pairs |
+| `GET` | `/api/v1/review/annotations` | List saved review annotations |
 
-Outputs:
-
-- `match_candidates.parquet` — candidate edges between original detection IDs
-- `candidate_match_pairs_classified.parquet` — candidate counts and ambiguity labels
-- `matched_detection_pairs.parquet` — candidate rows joined to selected fields from both original normalized detections
-- `unmatched_modis.parquet`
-- `unmatched_viirs.parquet`
-- `event_groups.parquet` — provisional MODIS-anchored candidate groups; not confirmed fire events
-- `reports\audit\matching_summary.json`
-- `reports\audit\candidate_pair_metrics.csv` — distance/time summaries and exploratory FRP correlation
-- `reports\audit\candidate_relationship_counts.csv` — single versus ambiguous candidate relationships
-
-## 5. Build calendar and historical analytics
-
-```powershell
-python scripts\04_build_analytics.py --root .
-```
-
-Outputs are saved in `reports\analytics`:
-
-- `monthly_sensor_activity.csv`
-- `annual_sensor_activity.csv`
-- `monthly_harmonization_activity.csv`
-- `calendar_*.csv` — year-by-month matrices for the frontend heatmap
-- `monthly_historical_anomalies.csv` — robust anomaly calculation using prior years for the same calendar month
-- `analytics_manifest.json` — definitions and interpretation notes
-
-The first and last partial months are excluded from full-month anomaly calculations. At least three prior years are required before a robust anomaly score is calculated. A zero historical MAD is reported rather than producing an unstable score.
-
-## 6. Recommended first quality checks
-
-Before interpreting matches, open these files:
-
-1. `reports\audit\combined_audit_summary.json`
-2. `reports\audit\modis_scan_track_summary.csv`
-3. `reports\audit\viirs_scan_track_summary.csv`
-4. `reports\audit\modis_duplicate_groups.csv` and `viirs_duplicate_groups.csv`
-5. `reports\audit\modis_confidence_counts.csv`
-6. `reports\audit\viirs_confidence_counts.csv`
-7. `reports\audit\matching_summary.json`
-8. `reports\analytics\monthly_historical_anomalies.csv`
-
-Check actual date coverage, missing scan/track values, coordinate validity, duplicate-key groups, sensor platforms, and confidence categories. Do not automatically delete duplicate-looking records; first determine whether they are true duplicate rows or separate observations.
-
-## 7. What this starter does not do yet
-
-- It does not download data from NASA automatically; you provide the FIRMS archive CSVs.
-- It does not infer the physical perimeter or ignition point of a fire.
-- It does not make a scientifically validated correction for off-nadir geolocation displacement.
-- It does not classify VIIRS-only detections as small fires or MODIS-only detections as large fires.
-- It does not create a global harmonized product; this pipeline operates on the India files you provide.
-- The provisional event groups are candidate groupings and require further spatial/temporal extent checks before being called fire events.
-
-## Reference documentation
-
-- NASA FIRMS Archive Download: https://firms.modaps.eosdis.nasa.gov/download/
-- NASA FIRMS Active Fire Data: https://firms.modaps.eosdis.nasa.gov/content/active_fire/
-- MODIS FIRMS field descriptions: https://firms2.modaps.eosdis.nasa.gov/content/descriptions/FIRMS_MODIS_Firehotspots.html
-- VIIRS FIRMS field descriptions: https://firms2.modaps.eosdis.nasa.gov/content/descriptions/FIRMS_VIIRS_Firehotspots.html
+See `API_CONTRACT.md` for complete query parameter descriptions, JSON schemas, and code examples.
