@@ -1,57 +1,82 @@
-# FireScope Implementation Status
+# FireScope Implementation & Integration Status
 
 **Date:** 14 November 2026  
 **Workspace:** `D:\FireScope`  
 **Repository:** `https://github.com/singhkartik1407/Nasa-Space-App-Challenge`  
-**Environment:** Windows CMD / Python 3.13.7 (.venv)
+**Environment:** Windows CMD (`cmd.exe`) / Python 3.13.7 (.venv) / Node.js (Vite + React 19)  
+**Overall Status:** **COMPLETED & VERIFIED (Full-Stack Live Integration)**
 
 ---
 
-## 1. Inventory of Present Assets
+## 1. System Inventory & Architecture
 
-### Data Foundation (Read-Only)
+### 1.1 Data Foundation (Read-Only Immutable Parquet)
 - `data/processed/common_period/modis_common_20120121_20260714.parquet`: 1,232,096 detections across 2012-01-21 to 2026-07-14.
 - `data/processed/common_period/viirs_common_20120121_20260714.parquet`: 8,725,086 detections across 2012-01-21 to 2026-07-10.
 - `data/harmonized/matching_20120301_20120331/candidate_pairs_superset.parquet`: 86,863 candidate edges.
 - `data/harmonized/matching_20240301_20240331/candidate_pairs_superset.parquet`: 38,250 candidate edges.
 
-### Audits & Validation Reports
-- `reports/audit/common_period_summary.json` and common-period breakdown CSVs.
-- `reports/audit/matching_20120301_20120331/`: Run metadata, threshold sensitivity, candidate graph audit, and threshold component sensitivity.
-- `reports/audit/matching_20240301_20240331/`: Run metadata, threshold sensitivity, and threshold component sensitivity.
-- Both pilot periods reconcile exactly across candidate pair counts and component sensitivity.
+### 1.2 Backend (FastAPI + DuckDB)
+- **Engine:** DuckDB 1.5.6 running direct queries against Parquet files with zero transactional duplication.
+- **Metadata Store:** SQLAlchemy 2.1.8 with automatic SQLite fallback (`backend/firescope_metadata.db`) and PostgreSQL readiness.
+- **Domain Geometry:** `backend/domain/thresholds.py` implementing Haversine distance, nominal/footprint radii, and Profiles A through E.
+- **REST Endpoints:** 8 route modules (`health`, `metadata`, `overview`, `detections`, `candidates`, `analytics`, `jobs`).
+- **Tests:** 26 automated unit and regression tests passing in 3.62s.
 
-### Python Environment & Dependencies
-- `.venv` configured with Python 3.13.7.
-- Installed libraries: `duckdb` (1.5.6), `pandas` (2.3.3), `pyarrow` (24.0.0), `scikit-learn` (1.9.1), `fastapi` (0.162.7), `uvicorn` (0.54.0), `pydantic` (2.14.3), `pydantic-settings` (2.16.3), `sqlalchemy` (2.1.8), `httpx` (0.28.1), `pytest` (9.2.0).
-
-### Frontend Status
-- No frontend files are located inside `D:\FireScope` at this time.
-- The user's friend is developing the frontend independently in another workspace.
-- Backend will expose clean CORS support and publish `API_CONTRACT.md` with stable schemas and payload examples so frontend integration proceeds in parallel without friction.
+### 1.3 Frontend (React 19 + TypeScript + Vite + MapLibre)
+- **Source Location:** `D:\FireScope\frontend`
+- **Backup Directory:** `D:\FireScope\frontend_backup` (created before edits, excluding node_modules, dist, and .git).
+- **Environment:** Configured for live backend (`VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`, `VITE_USE_MOCK_DATA=false`).
+- **Build Status:** Strict TypeScript check (`tsc -b`) and Vite production build pass cleanly in 2.10s.
 
 ---
 
-## 2. Target Deliverables in Current Build
+## 2. Frontend Section Integration Matrix
 
-1. **Backend Package (`backend/`):**
-   - `backend/config.py`: Environment-driven settings with safe defaults and robust path resolution.
-   - `backend/domain/thresholds.py`: Shared, tested domain module for footprint calculations and matching profiles (A–E, with A as default and B as selectable).
-   - `backend/database.py` & `backend/models.py`: Lightweight metadata persistence layer (PostgreSQL-ready with automatic SQLite local fallback for zero-daemon startup).
-   - `backend/services/duckdb_service.py`: High-performance parameterized analytical query engine querying Parquet directly without transactional DB duplication.
-   - `backend/schemas/`: Typed Pydantic v2 schemas for all requests and responses.
-   - `backend/routers/`: Modular route handlers for metadata, overview, detections, candidates, analytics, and matching jobs.
-   - `backend/main.py`: FastAPI application factory with structured logging, CORS, and unified error handling.
+| Frontend Section | Actual Backend Endpoint | Required Parameters | Response Mapping | Status |
+|---|---|---|---|---|
+| **Dashboard** | `GET /api/v1/overview` | `start_date`, `end_date`, `sensor`, `daynight`, `profile` | Total observations, active sensors, candidate pairs, sensor-separated FRP means | **LIVE CONNECTED** |
+| **Fire Map** | `GET /api/v1/detections` | `start_date`, `end_date`, `sensor`, `daynight`, `min_lon`, `min_lat`, `max_lon`, `max_lat`, `limit=500` | GeoJSON FeatureCollection; styled with MODIS (#f97316) & VIIRS (#3b82f6) circle layers, interactive click popup | **LIVE CONNECTED** |
+| **Activity Calendar** | `GET /api/v1/analytics/activity` | `start_date`, `end_date`, `interval=month`, `tz=UTC` | Monthly observation timeseries mapped per sensor for calendar breakdown | **LIVE CONNECTED** |
+| **Analytics** | `GET /api/v1/analytics/frp`<br>`GET /api/v1/analytics/sensors`<br>`GET /api/v1/analytics/relationships` | `start_date`, `end_date` | Sensor-separated FRP percentiles (p25, median, p75, p95, max), product versions (6.03/61.03 vs 2), profile sensitivity table | **LIVE CONNECTED** |
+| **Match Explorer** | `GET /api/v1/candidates` | `profile` (A or B), `start_date`, `end_date`, `page`, `page_size` | Paginated candidate pairs table with distance (km), time delta (min), combined footprint radii, relationship badges | **LIVE CONNECTED** |
+| **Data Sources** | `GET /ready`<br>`GET /api/v1/metadata` | None | Live backend Parquet engine status, 9,957,182 total records counter, product collections and windows | **LIVE CONNECTED** |
+| **Settings** | `GET /ready`<br>`GET /health` | None | Real-time backend connectivity check, ping round-trip latency, DuckDB row counts, SQLite metadata status | **LIVE CONNECTED** |
+| **Documentation** | Content / Static | None | Preserved scientific terminology, updated data engine specifications to live FastAPI/DuckDB | **VERIFIED** |
 
-2. **Windows CMD Launchers:**
-   - `scripts/setup_backend.cmd`
-   - `scripts/run_backend.cmd`
-   - `scripts/test_backend.cmd`
+---
 
-3. **Documentation & Contracts:**
-   - `API_CONTRACT.md`: Complete API documentation, endpoint table, query parameters, and example JSON payloads.
+## 3. Mandatory Scientific Reconciliation Audit
 
-4. **Testing Suite (`tests/`):**
-   - Unit tests for domain threshold calculations and footprint geometry.
-   - Integration tests for `/health`, `/ready`, `/api/v1/metadata`, and `/api/v1/overview`.
-   - Data verification tests reconciling API outputs against audited March 2012 and March 2024 figures.
+| Benchmark Period | Sensor / Metric | Audited Target | Application Value | Verification Status |
+|---|---|---:|---:|:---:|
+| **March 2012** | MODIS Detections | 30,161 | 30,161 | **EXACT MATCH** |
+| **March 2012** | VIIRS Detections | 182,644 | 182,644 | **EXACT MATCH** |
+| **March 2012** | Profile A Candidate Pairs ($\le 1\text{h}$) | 44,941 | 44,941 | **EXACT MATCH** |
+| **March 2012** | Profile B Candidate Pairs ($\le 3\text{h}$) | 60,179 | 60,179 | **EXACT MATCH** |
+| **March 2024** | MODIS Detections | 14,139 | 14,139 | **EXACT MATCH** |
+| **March 2024** | VIIRS Detections | 103,369 | 103,369 | **EXACT MATCH** |
+| **March 2024** | Profile A Candidate Pairs ($\le 1\text{h}$) | 19,949 | 19,949 | **EXACT MATCH** |
+| **March 2024** | Profile B Candidate Pairs ($\le 3\text{h}$) | 24,815 | 24,815 | **EXACT MATCH** |
+
+---
+
+## 4. Scientific Safeguards Compliance
+
+1. **Observations vs Fires:** All UI copy, labels, and tooltips explicitly distinguish between raw satellite thermal anomaly pixels and physical wildfires.
+2. **Candidate Pairs $\neq$ Confirmed Matches:** The Match Explorer explicitly clarifies that candidate pairs represent geometric-temporal proximity under sensor footprint envelopes, not confirmed physical fire identities.
+3. **Absence of Counterpart $\rightarrow$ `Coverage Unverified`:** Unmatched records are designated as coverage-unverified rather than erroneous or sensor-exclusive.
+4. **FRP Separation:** MODIS and VIIRS Fire Radiative Power are strictly segregated in all cards, tables, and distribution charts; summing across sensors is prevented.
+5. **Canonical UTC:** All database operations and API communication operate strictly in UTC (`acq_datetime_utc`).
+6. **No Memory Bloat:** Frontend requests bounded observation limits (max 500 points for MapLibre viewport rendering) and paginated candidate pairs (10-50 per page).
+
+---
+
+## 5. Windows Command Prompt Launchers
+
+- `scripts\setup_backend.cmd` — Environment preparation and package verification.
+- `scripts\run_backend.cmd` — Starts FastAPI server on `http://127.0.0.1:8000`.
+- `scripts\test_backend.cmd` — Executes all 26 backend unit and regression tests.
+- `scripts\run_frontend.cmd` — Starts Vite dev server on `http://127.0.0.1:5173`.
+- `scripts\test_frontend.cmd` — Runs strict TypeScript checking (`tsc -b`) and Vite production build.
+- `scripts\run_demo.cmd` — Launches both backend and frontend simultaneously in separate CMD prompts for a complete live demo.
