@@ -1,0 +1,7 @@
+time_bin,candidate_pair_count,distinct_modis,distinct_viirs
+00_0_to_15_min,29199,6831,14596
+01_15_to_30_min,14562,2881,6584
+02_30_to_60_min,18956,4280,9497
+03_1_to_2_hours,11660,2601,5513
+04_2_to_3_hours,8466,1980,5326
+05_3_to_6_hours,4020,889,2813

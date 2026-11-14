@@ -1,0 +1,65 @@
+{
+  "analysis": "Bipartite candidate-graph connected-component and high-degree neighborhood audit",
+  "warning": "Connected components are graph-connectivity diagnostics only, not physical-fire events. Bounding-box diagonal is an approximate spatial extent, not an exact maximum pairwise distance. A component may span multiple fires through transitive candidate links.",
+  "input_file": "D:\\FireScope\\data\\harmonized\\matching_20120301_20120331\\candidate_pairs_superset.parquet",
+  "candidate_edge_count": 86863,
+  "duplicate_edge_rows": 0,
+  "unique_modis_nodes": 18579,
+  "unique_viirs_nodes": 41748,
+  "connected_component_count": 10144,
+  "component_type_counts": {
+    "many_modis_to_one_viirs_component": 630,
+    "many_to_many_component": 3493,
+    "one_modis_to_many_viirs_component": 3924,
+    "one_to_one_component": 2097
+  },
+  "largest_component_by_edges": {
+    "component_id": "CC_00004353",
+    "candidate_edges": 1018,
+    "modis_detections": 24,
+    "viirs_detections": 153,
+    "bbox_diagonal_approx_km": 20.256442496296458,
+    "time_span_hours": 2.8
+  },
+  "component_bbox_diagonal_distribution_km": {
+    "min": 0.009514758380748629,
+    "median": 1.2935758009792324,
+    "p90": 3.0985401420291767,
+    "p95": 4.075218875812201,
+    "p99": 6.675899556715718,
+    "max": 20.256442496296458
+  },
+  "component_time_span_distribution_hours": {
+    "min": 0.016666666666666666,
+    "median": 0.5833333333333334,
+    "p90": 2.9,
+    "p95": 3.216666666666667,
+    "p99": 4.15,
+    "max": 4.75
+  },
+  "components_over_extent_bands": {
+    "1": 6648,
+    "5": 283,
+    "10": 13,
+    "25": 0,
+    "50": 0,
+    "100": 0
+  },
+  "components_over_time_span_bands": {
+    "1": 3099,
+    "3": 867,
+    "6": 0,
+    "12": 0,
+    "24": 0,
+    "48": 0,
+    "72": 0
+  },
+  "high_degree_profiled_per_sensor": 30,
+  "output_files": [
+    "candidate_connected_components.csv",
+    "candidate_component_node_membership.csv",
+    "high_degree_neighborhood_summary.csv",
+    "high_degree_candidate_edges.csv",
+    "candidate_component_audit_summary.json"
+  ]
+}

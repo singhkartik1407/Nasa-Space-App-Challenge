@@ -1,0 +1,4 @@
+sensor,detections_with_candidates,mean_degree,median_degree,p90_degree,p95_degree,p99_degree,max_degree
+MODIS,18579,4.675332364497551,3.0,10.0,14.0,24.0,97
+VIIRS_IN_PERIOD,41748,2.08065057008719,2.0,4.0,5.0,7.0,15
+VIIRS_OUTSIDE_PERIOD_MARGIN,0,,,,,,

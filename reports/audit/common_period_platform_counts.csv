@@ -1,0 +1,4 @@
+sensor,satellite,detections
+MODIS,Aqua,851032
+MODIS,Terra,381064
+VIIRS,SNPP,8725086

@@ -1,0 +1,5 @@
+modis_satellite,viirs_satellite,modis_daynight,viirs_daynight,modis_version,viirs_version,candidate_pair_count,distinct_modis,distinct_viirs,median_distance_km,median_time_diff_minutes
+Aqua,SNPP,D,D,6.03,2,67770,14690,32414,0.9401076724934583,25.0
+Terra,SNPP,D,D,6.03,2,11252,2435,6714,0.9455186583987248,130.0
+Terra,SNPP,N,N,6.03,2,4964,966,3508,0.7745834548283825,188.0
+Aqua,SNPP,N,N,6.03,2,2877,488,2113,0.7642453101568286,21.0

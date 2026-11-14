@@ -1,0 +1,54 @@
+{
+  "comparison_window": {
+    "start_date_inclusive": "2012-01-21",
+    "end_date_inclusive": "2026-07-14",
+    "interpretation": "A common calendar window. This does not by itself prove complete sensor observation coverage on every day."
+  },
+  "sensors": {
+    "MODIS": {
+      "rows": 1232096,
+      "min_date": "2012-01-21",
+      "max_date": "2026-07-14",
+      "days_with_detections": 5254,
+      "months_with_detections": 175,
+      "satellite_values": 2,
+      "total_frp_mw": 32856493.400000036,
+      "mean_frp_mw": 26.66715369581594,
+      "median_frp_mw": 13.5,
+      "median_scan_km": 1.2,
+      "median_track_km": 1.1,
+      "output_file": "D:\\FireScope\\data\\processed\\common_period\\modis_common_20120121_20260714.parquet"
+    },
+    "VIIRS": {
+      "rows": 8725086,
+      "min_date": "2012-01-21",
+      "max_date": "2026-07-10",
+      "days_with_detections": 5237,
+      "months_with_detections": 175,
+      "satellite_values": 1,
+      "total_frp_mw": 55352659.069999695,
+      "mean_frp_mw": 6.344081774093653,
+      "median_frp_mw": 3.69,
+      "median_scan_km": 0.43,
+      "median_track_km": 0.43,
+      "output_file": "D:\\FireScope\\data\\processed\\common_period\\viirs_common_20120121_20260714.parquet"
+    }
+  },
+  "important_notes": [
+    "Original normalized Parquet files were not modified.",
+    "The common-period files retain all source columns for detections in the selected date window.",
+    "A day absent from a hotspot detection table means zero recorded detections in that file, not necessarily missing satellite coverage.",
+    "MODIS and VIIRS detection counts are sensor pixel detections, not unique physical fire counts.",
+    "FRP is summarized separately by sensor; do not add the two sensor totals and interpret them as unique fire energy."
+  ],
+  "outputs": {
+    "modis_common_parquet": "D:\\FireScope\\data\\processed\\common_period\\modis_common_20120121_20260714.parquet",
+    "viirs_common_parquet": "D:\\FireScope\\data\\processed\\common_period\\viirs_common_20120121_20260714.parquet",
+    "monthly_activity": "D:\\FireScope\\reports\\audit\\common_period_monthly_activity.csv",
+    "daily_detection_counts": "D:\\FireScope\\reports\\audit\\common_period_daily_detection_counts.csv",
+    "platform_counts": "D:\\FireScope\\reports\\audit\\common_period_platform_counts.csv",
+    "confidence_counts": "D:\\FireScope\\reports\\audit\\common_period_confidence_counts.csv",
+    "daynight_counts": "D:\\FireScope\\reports\\audit\\common_period_daynight_counts.csv",
+    "frp_scan_track_summary": "D:\\FireScope\\reports\\audit\\common_period_frp_scan_track_summary.csv"
+  }
+}
