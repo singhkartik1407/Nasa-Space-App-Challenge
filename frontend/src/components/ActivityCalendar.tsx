@@ -120,6 +120,10 @@ export default function ActivityCalendar({
                       VIIRS: <strong>{(data.viirs_detections || 0).toLocaleString()}</strong>
                     </div>
                   </div>
+                ) : year === 2026 && num > 7 ? (
+                  <div className="calendar-no-data" style={{ color: "#64748b" }}>
+                    Outside observation window
+                  </div>
                 ) : (
                   <div className="calendar-no-data">
                     No detections recorded

@@ -7,7 +7,7 @@ export default function MatchExplorer() {
   const [profile, setProfile] = useState<"A" | "B">("A");
   const [period, setPeriod] = useState<"2024-03" | "2012-03">("2024-03");
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(20);
 
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -177,7 +177,29 @@ export default function MatchExplorer() {
               Showing {candidates.length} of {totalItems.toLocaleString()} candidate pairs (Page {page} of {totalPages})
             </p>
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label style={{ fontSize: "11px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "4px" }}>
+              Per page:
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{
+                  padding: "4px 8px",
+                  background: "#0f172a",
+                  color: "#f8fafc",
+                  border: "1px solid #334155",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </label>
             <button
               type="button"
               disabled={page <= 1 || loading}
