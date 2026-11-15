@@ -1,4 +1,4 @@
-# FireScope — Satellite Fire Intelligence for India
+# FireScope
 
 ## What is FireScope?
 
