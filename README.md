@@ -134,7 +134,6 @@ npm ci
 cd ..
 ```
 
-Do not commit `.env.local` or expose API credentials.
 
 ### 5. Start the application
 
