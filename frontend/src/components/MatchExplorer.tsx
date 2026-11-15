@@ -1,13 +1,30 @@
 ﻿import { useEffect, useState } from "react";
 import { getCandidates } from "../lib/api/candidates";
 import { getDashboardSummary } from "../lib/api/dashboard";
+import { getMetadata } from "../lib/api/metadata";
 import type { CandidateMatch, DashboardSummary } from "../lib/api/types";
+
+interface PeriodItem {
+  period_id: string;
+  start: string;
+  end: string;
+  label: string;
+  status: string;
+  is_pilot: boolean;
+}
 
 export default function MatchExplorer() {
   const [profile, setProfile] = useState<"A" | "B">("A");
-  const [period, setPeriod] = useState<"2024-03" | "2012-03">("2024-03");
+  const [period, setPeriod] = useState<string>("2024-03");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const [availablePeriods, setAvailablePeriods] = useState<PeriodItem[]>([
+    { period_id: "2024-03", start: "2024-03-01", end: "2024-03-31", label: "2024-03 (March 2024 · Pilot)", status: "VALIDATED", is_pilot: true },
+    { period_id: "2024-04", start: "2024-04-01", end: "2024-04-30", label: "2024-04 (April 2024)", status: "COMPLETED", is_pilot: false },
+    { period_id: "2012-03", start: "2012-03-01", end: "2012-03-31", label: "2012-03 (March 2012 · Pilot)", status: "VALIDATED", is_pilot: true },
+    { period_id: "2012-04", start: "2012-04-01", end: "2012-04-30", label: "2012-04 (April 2012)", status: "COMPLETED", is_pilot: false },
+  ]);
 
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -17,8 +34,36 @@ export default function MatchExplorer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const startDate = period === "2024-03" ? "2024-03-01" : "2012-03-01";
-  const endDate = period === "2024-03" ? "2024-03-31" : "2012-03-31";
+  useEffect(() => {
+    getMetadata()
+      .then((meta) => {
+        if (meta.processed_matching_periods && meta.processed_matching_periods.length > 0) {
+          const list: PeriodItem[] = meta.processed_matching_periods.map((p) => ({
+            period_id: p.period_id,
+            start: p.start_date,
+            end: p.end_date,
+            label: `${p.period_id} (${p.status}${p.is_pilot ? " · Pilot" : ""})`,
+            status: p.status,
+            is_pilot: p.is_pilot,
+          }));
+          list.sort((a, b) => b.period_id.localeCompare(a.period_id));
+          setAvailablePeriods(list);
+        }
+      })
+      .catch((err) => console.warn("Failed to load dynamic periods from metadata:", err));
+  }, []);
+
+  const selectedObj = availablePeriods.find((p) => p.period_id === period) || availablePeriods[0] || {
+    period_id: "2024-03",
+    start: "2024-03-01",
+    end: "2024-03-31",
+    label: "2024-03 (March 2024 · Pilot)",
+    status: "VALIDATED",
+    is_pilot: true,
+  };
+  const startDate = selectedObj.start;
+  const endDate = selectedObj.end;
+  const currentStatus = selectedObj.status;
 
   // Reset page when profile or period changes
   const handleProfileChange = (newProfile: "A" | "B") => {
@@ -26,7 +71,7 @@ export default function MatchExplorer() {
     setPage(1);
   };
 
-  const handlePeriodChange = (newPeriod: "2024-03" | "2012-03") => {
+  const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);
     setPage(1);
   };
@@ -109,10 +154,10 @@ export default function MatchExplorer() {
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#94a3b8" }}>PILOT PERIOD:</span>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "#94a3b8" }}>MATCHING PERIOD:</span>
           <select
             value={period}
-            onChange={(e) => handlePeriodChange(e.target.value as "2024-03" | "2012-03")}
+            onChange={(e) => handlePeriodChange(e.target.value)}
             style={{
               padding: "6px 12px",
               background: "#0f172a",
@@ -122,11 +167,41 @@ export default function MatchExplorer() {
               fontSize: "12px",
             }}
           >
-            <option value="2024-03">March 2024 (MODIS 61.03 era)</option>
-            <option value="2012-03">March 2012 (MODIS 6.03 era)</option>
+            {availablePeriods.map((p) => (
+              <option key={p.period_id} value={p.period_id}>
+                {p.label}
+              </option>
+            ))}
           </select>
+          <span
+            style={{
+              padding: "3px 8px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              fontWeight: 700,
+              background: currentStatus === "VALIDATED" ? "rgba(16, 185, 129, 0.2)" : "rgba(14, 165, 233, 0.2)",
+              color: currentStatus === "VALIDATED" ? "#34d399" : "#38bdf8",
+              border: `1px solid ${currentStatus === "VALIDATED" ? "#059669" : "#0284c7"}`,
+            }}
+          >
+            {currentStatus}
+          </span>
         </div>
       </section>
+
+      {summary?.matching_available === false && (
+        <div style={{
+          padding: "12px 16px",
+          marginBottom: "16px",
+          background: "#1e1b4b",
+          border: "1px solid #4338ca",
+          borderRadius: "6px",
+          color: "#c7d2fe",
+          fontSize: "13px",
+        }}>
+          <strong>Observations available:</strong> Cross-sensor candidate matching has not yet been processed for this period. Raw observations remain fully available on the Fire Map and Activity Calendar.
+        </div>
+      )}
 
       {error && <div className="summary-error" role="alert">{error}</div>}
 

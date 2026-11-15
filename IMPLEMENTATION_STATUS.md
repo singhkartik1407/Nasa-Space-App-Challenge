@@ -10,18 +10,29 @@
 
 ## 1. System Inventory & Architecture
 
-### 1.1 Data Foundation (Read-Only Immutable Parquet)
+### 1.1 Data Foundation (Read-Only Immutable Parquet & Harmonized Archive)
 - `data/processed/common_period/modis_common_20120121_20260714.parquet`: 1,232,096 detections across 2012-01-21 to 2026-07-14.
 - `data/processed/common_period/viirs_common_20120121_20260714.parquet`: 8,725,086 detections across 2012-01-21 to 2026-07-10.
-- `data/harmonized/matching_20120301_20120331/candidate_pairs_superset.parquet`: 86,863 candidate edges.
-- `data/harmonized/matching_20240301_20240331/candidate_pairs_superset.parquet`: 38,250 candidate edges.
+- `data/harmonized/`: 175 monthly candidate superset Parquet files (2,753,852 total candidate pairs across 2012-01 to 2026-07).
+- `data/harmonized/manifest.json`: Atomic tracking manifest cataloging all 175 months (173 COMPLETED, 2 VALIDATED pilot benchmarks: 2012-03 with 86,863 pairs and 2024-03 with 38,250 pairs).
+- **Candidate Matching Canonical Definitions:**
+  - **Profile A (Default Baseline):** $\Delta t \le 1.0\,\text{h}$, $\text{distance} \le r_{\text{MODIS}} + r_{\text{VIIRS}} + 0.0\,\text{km}$ (1,319,525 pairs across archive).
+  - **Profile B (Selectable Alternative):** $\Delta t \le 3.0\,\text{h}$, $\text{distance} \le r_{\text{MODIS}} + r_{\text{VIIRS}} + 0.0\,\text{km}$ (1,815,450 pairs across archive).
+  - **Superset Screening Envelope:** $\Delta t \le 6.0\,\text{h}$, $\text{distance} \le r_{\text{MODIS}} + r_{\text{VIIRS}} + 0.50\,\text{km}$ (Profile E).
+- **Scientific Audit Deliverables:**
+  - `historical_profile_consistency.csv`
+  - `historical_superset_envelope_audit.csv`
+  - `historical_boundary_completeness_audit.csv`
+  - `historical_manifest_integrity.csv`
+  - `historical_candidate_totals_by_profile.csv`
+  - `FIRESCOPE_FINAL_SCIENTIFIC_CONSISTENCY_REPORT.md`
 
 ### 1.2 Backend (FastAPI + DuckDB)
 - **Engine:** DuckDB 1.5.6 running direct queries against Parquet files with zero transactional duplication.
 - **Metadata Store:** SQLAlchemy 2.1.8 with automatic SQLite fallback (`backend/firescope_metadata.db`) and PostgreSQL readiness.
 - **Domain Geometry:** `backend/domain/thresholds.py` implementing Haversine distance, nominal/footprint radii, and Profiles A through E.
 - **REST Endpoints:** 8 route modules (`health`, `metadata`, `overview`, `detections`, `candidates`, `analytics`, `jobs`).
-- **Tests:** 26 automated unit and regression tests passing in 3.59s.
+- **Tests:** 30 automated unit and regression tests passing in 3.88s (including multi-resolution spatial aggregation and manifest-aware candidate checking).
 
 ### 1.3 Frontend (React 19 + TypeScript + Vite + MapLibre)
 - **Source Location:** `D:\FireScope\frontend`
@@ -36,7 +47,7 @@
 | Frontend Section | Actual Backend Endpoint | Required Parameters | Response Mapping | Status |
 |---|---|---|---|---|
 | **Dashboard** | `GET /api/v1/overview` | `start_date`, `end_date`, `sensor`, `daynight`, `profile` | Total observations, active sensors, candidate pairs, sensor-separated FRP means | **LIVE CONNECTED** |
-| **Fire Map** | `GET /api/v1/detections` | `start_date`, `end_date`, `sensor`, `daynight`, `min_lon`, `min_lat`, `max_lon`, `max_lat`, `limit=500` | GeoJSON FeatureCollection; styled with MODIS (#f97316) & VIIRS (#3b82f6) circle layers, interactive click popup | **LIVE CONNECTED** |
+| **Fire Map** | `GET /api/v1/map/aggregate`<br>`GET /api/v1/detections` | `start_date`, `end_date`, `sensor`, `daynight`, `resolution_deg`, `zoom`, `min_lon`, `min_lat`, `max_lon`, `max_lat` | Multi-resolution spatial aggregation: Zoom < 6: 0.5° national overview (~1,267 cells representing 100% of 9.957M obs in 0.5s); Zoom 6–9: 0.15° regional grid; Zoom $\ge$ 10: individual detections with telemetry popup. Basemap toggle: MapLibre (OSM) default + Google Maps (deck.gl) overlay | **LIVE CONNECTED** |
 | **Activity Calendar** | `GET /api/v1/analytics/activity` | `start_date`, `end_date`, `interval=month`, `tz=UTC` | Monthly observation timeseries mapped per sensor for calendar breakdown | **LIVE CONNECTED** |
 | **Analytics** | `GET /api/v1/analytics/frp`<br>`GET /api/v1/analytics/sensors`<br>`GET /api/v1/analytics/relationships` | `start_date`, `end_date` | Sensor-separated FRP percentiles (p25, median, p75, p95, max), product versions (6.03/61.03 vs 2), profile sensitivity table | **LIVE CONNECTED** |
 | **Match Explorer** | `GET /api/v1/candidates` | `profile` (A or B), `start_date`, `end_date`, `page`, `page_size` | Paginated candidate pairs table with distance (km), time delta (min), combined footprint radii, relationship badges | **LIVE CONNECTED** |
@@ -170,3 +181,54 @@ scripts\run_demo.cmd
 ```
 - **Backend API:** `http://127.0.0.1:8000` (OpenAPI Docs: `http://127.0.0.1:8000/docs`)
 - **Frontend UI:** `http://127.0.0.1:5173`
+
+---
+
+## 8. Full Historical Dataset Expansion & Advanced Geospatial Visualization
+
+### 8.1 14-Year Common-Period Observation Archive Default (2012–2026)
+- **Default Application Window:** Initialized to `2012-01-21` through `2026-07-14` (UTC) across Dashboard, Fire Map, Activity Calendar, and Analytics.
+- **Instrument Boundaries Respected:**
+  - MODIS (Terra & Aqua): 1,232,096 observations (`2012-01-21` to `2026-07-14`).
+  - VIIRS (Suomi-NPP): 8,725,086 observations (`2012-01-21` to `2026-07-10`).
+  - Total Archive: **9,957,182 observations**.
+- **Full Period DuckDB Benchmark:** Overview query across all 9.957 million rows executes in **0.72s**.
+- **Quick Preset Selectors:** Added period shortcut buttons on the Global Filter panel:
+  - `Full Archive (2012–2026)`
+  - `March 2024 Pilot`
+  - `March 2012 Pilot`
+  - `April 2024 (Matched)`
+  - `April 2012 (Matched)`
+
+### 8.2 Multi-Resolution Spatial Aggregation Architecture (`GET /api/v1/map/aggregate`)
+To prevent client browser memory exhaustion and WebGL vertex buffer crashes when visualizing millions of points:
+1. **Zoom Level 1 (National Overview, Zoom < 6):**
+   - DuckDB aggregates 9.957M rows into 0.5° grid cells (~50 km) in **0.51s**.
+   - Yields ~1,267 compact GeoJSON points representing **100% of all fire hotspots**.
+   - Circle radius interpolated dynamically (`circle-radius: [interpolate, [linear], [get, total_count], ...]`).
+   - Circle color distinguishes sensor composition: MODIS only (#f97316), VIIRS only (#3b82f6), and co-observed (#8b5cf6).
+   - Interactive click popup displays: Centroid coordinates, total observations, MODIS count + avg FRP, VIIRS count + avg FRP, and scientific note confirming separated FRP.
+2. **Zoom Level 2 (Regional Grid, Zoom 6–9):**
+   - Aggregates viewport bounding box into 0.15° grid cells (~15 km) for regional density patterns.
+3. **Zoom Level 3 (Local View, Zoom $\ge$ 10):**
+   - Switches to individual detection records (`GET /api/v1/detections`, up to 500 records) with full telemetry popup (satellite, exact UTC timestamp, FRP MW, confidence, row ID).
+
+### 8.3 Google Maps + deck.gl Proof of Concept with MapLibre Fallback
+- **Implementation:** Created `frontend/src/components/GoogleFireMap.tsx` integrating `@googlemaps/js-api-loader`, `@deck.gl/google-maps` (`GoogleMapsOverlay`), and `@deck.gl/layers` (`ScatterplotLayer`).
+- **Configuration:** Reads `VITE_GOOGLE_MAPS_API_KEY` and `VITE_GOOGLE_MAPS_MAP_ID` securely from `frontend/.env.local` without hardcoding or repository leakage.
+- **Basemap Switcher:** Seamless toggle between `MapLibre (OSM)` (default, zero external network dependency) and `Google Maps (deck.gl)`.
+- **Graceful Error Handling:** If the Google Maps API key is missing or blocked by network policies, a clean notification banner offers a one-click return to MapLibre.
+
+### 8.4 Historical Candidate Matching Expansion & Manifest Tracking
+- **Manifest File:** `data/harmonized/manifest.json` tracks processed monthly candidate supersets and verified pilot/expansion periods.
+- **Batch Matching Script:** `scripts/batch_match_historical.py` provides progressive month-by-month matching with `--status`, `--refresh-manifest`, and `--process-month YYYY-MM`.
+- **Audited Matching Benchmarks:**
+  | Period | Status | MODIS Obs | VIIRS Obs | Superset Edges | Profile A Pairs ($\le 1\text{h}$) | Profile B Pairs ($\le 3\text{h}$) |
+  |---|---|---:|---:|---:|---:|---:|
+  | **2012-03** | Pilot | 30,161 | 182,644 | 86,863 | 44,941 | 60,179 |
+  | **2012-04** | Expanded | 10,514 | 79,579 | 30,885 | 14,419 | 20,922 |
+  | **2024-03** | Pilot | 14,139 | 103,369 | 38,250 | 19,949 | 24,815 |
+  | **2024-04** | Expanded | 15,735 | 154,490 | 44,427 | 21,841 | 27,581 |
+- **Availability Safeguard:** When date ranges outside processed matching months are selected, the UI clearly displays:
+  > *"Cross-sensor matching not yet processed for this period. Observations available."*
+  Never fabricates candidate matches or falsely presents unmatched periods as zero detections.

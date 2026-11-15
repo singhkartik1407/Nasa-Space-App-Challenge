@@ -87,3 +87,54 @@ def test_candidate_by_id(client):
     assert "time_diff_minutes" in cand
     assert "modis_frp_mw" in cand
     assert "viirs_frp_mw" in cand
+
+
+def test_map_aggregate_overview(client):
+    response = client.get("/api/v1/map/aggregate?start_date=2024-03-01&end_date=2024-03-05&resolution_deg=0.5")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "FeatureCollection"
+    assert "summary" in data
+    assert data["summary"]["total_cells"] > 0
+    assert data["summary"]["resolution_deg"] == 0.5
+    assert len(data["features"]) == data["summary"]["total_cells"]
+
+    # Verify first feature GeoJSON structure
+    f0 = data["features"][0]
+    assert f0["type"] == "Feature"
+    assert f0["geometry"]["type"] == "Point"
+    assert len(f0["geometry"]["coordinates"]) == 2
+    props = f0["properties"]
+    assert "cell_id" in props
+    assert "total_count" in props
+    assert "modis_count" in props
+    assert "viirs_count" in props
+    assert "modis_avg_frp" in props
+    assert "viirs_avg_frp" in props
+
+
+def test_map_aggregate_auto_resolution(client):
+    # Zoom >= 6 should adapt resolution_deg to 0.15
+    response = client.get("/api/v1/map/aggregate?start_date=2024-03-01&end_date=2024-03-01&zoom=8")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"]["resolution_deg"] == 0.15
+
+
+def test_overview_full_period_matching_unavailable(client):
+    # Full 14-year range should have observations, but matching.available = False
+    response = client.get("/api/v1/overview?start_date=2012-01-21&end_date=2026-07-14")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["detections"]["total_observations"] > 9_000_000
+    assert data["matching"]["available"] is False
+    assert "not yet processed" in data["matching"].get("message", "")
+
+
+def test_overview_manifest_matched_month(client):
+    # April 2024 (processed in manifest.json) should have matching.available = True
+    response = client.get("/api/v1/overview?start_date=2024-04-01&end_date=2024-04-30")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["matching"]["available"] is True
+    assert data["matching"]["candidate_edge_count"] > 0

@@ -146,3 +146,87 @@ export async function getMapDetections(options?: MapQueryOptions): Promise<MapDe
     },
   };
 }
+
+export interface MapAggregateCellProperties {
+  cell_id: string;
+  latitude: number;
+  longitude: number;
+  total_count: number;
+  modis_count: number;
+  viirs_count: number;
+  modis_avg_frp: number;
+  viirs_avg_frp: number;
+  resolution_deg: number;
+}
+
+export interface MapAggregateFeature {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number]; // [lon, lat]
+  };
+  properties: MapAggregateCellProperties;
+}
+
+export interface MapAggregateSummary {
+  total_cells: number;
+  total_observations: number;
+  modis_observations: number;
+  viirs_observations: number;
+  resolution_deg: number;
+}
+
+export interface MapAggregateResponse {
+  type: "FeatureCollection";
+  query: Record<string, unknown>;
+  summary: MapAggregateSummary;
+  features: MapAggregateFeature[];
+}
+
+export interface MapAggregateOptions {
+  startDate?: string;
+  endDate?: string;
+  sensor?: string;
+  platform?: string;
+  daynight?: string;
+  minLat?: number;
+  maxLat?: number;
+  minLon?: number;
+  maxLon?: number;
+  resolutionDeg?: number;
+  zoom?: number;
+}
+
+export async function getMapAggregation(options?: MapAggregateOptions): Promise<MapAggregateResponse> {
+  const isMock = import.meta.env.VITE_USE_MOCK_DATA === "true";
+
+  if (isMock) {
+    return {
+      type: "FeatureCollection",
+      query: {},
+      summary: {
+        total_cells: 0,
+        total_observations: 0,
+        modis_observations: 0,
+        viirs_observations: 0,
+        resolution_deg: options?.resolutionDeg || 0.5,
+      },
+      features: [],
+    };
+  }
+
+  const params: Record<string, string | number | undefined> = {};
+  if (options?.startDate) params.start_date = options.startDate;
+  if (options?.endDate) params.end_date = options.endDate;
+  if (options?.sensor && options.sensor !== "BOTH") params.sensor = options.sensor;
+  if (options?.platform && options.platform !== "ALL") params.platform = options.platform;
+  if (options?.daynight && options.daynight !== "ALL") params.daynight = options.daynight;
+  if (options?.minLat != null) params.min_lat = options.minLat;
+  if (options?.maxLat != null) params.max_lat = options.maxLat;
+  if (options?.minLon != null) params.min_lon = options.minLon;
+  if (options?.maxLon != null) params.max_lon = options.maxLon;
+  if (options?.resolutionDeg != null) params.resolution_deg = options.resolutionDeg;
+  if (options?.zoom != null) params.zoom = options.zoom;
+
+  return apiGet<MapAggregateResponse>(API_ENDPOINTS.mapAggregate, params);
+}

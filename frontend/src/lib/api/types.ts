@@ -250,6 +250,19 @@ export interface SystemReadiness {
   error?: string | null;
 }
 
+export interface ProcessedMatchingPeriod {
+  period_id: string;
+  start_date: string;
+  end_date: string;
+  modis_detections: number;
+  viirs_detections: number;
+  candidate_superset_edges: number;
+  profile_a_edges: number;
+  profile_b_edges: number;
+  status: "VALIDATED" | "COMPLETED" | "RUNNING" | "FAILED" | "NOT_PROCESSED" | string;
+  is_pilot: boolean;
+}
+
 export interface MetadataResponse {
   dataset_window: {
     start_date: string;
@@ -290,6 +303,7 @@ export interface MetadataResponse {
     modis_version: string;
     viirs_version: string;
   }>;
+  processed_matching_periods?: ProcessedMatchingPeriod[];
 }
 
 export interface ApiResponse<T> {

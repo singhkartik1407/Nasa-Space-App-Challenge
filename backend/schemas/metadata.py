@@ -38,6 +38,19 @@ class AuditedPeriodSummary(BaseModel):
     viirs_version: str
 
 
+class ProcessedMatchingPeriod(BaseModel):
+    period_id: str
+    start_date: str
+    end_date: str
+    modis_detections: int
+    viirs_detections: int
+    candidate_superset_edges: int
+    profile_a_edges: int
+    profile_b_edges: int
+    status: str = "COMPLETED"
+    is_pilot: bool = False
+
+
 class DatasetWindow(BaseModel):
     start_date: str
     end_date: str
@@ -53,4 +66,5 @@ class MetadataResponse(BaseModel):
     default_profile: str
     alternative_profile: str
     audited_pilot_periods: List[AuditedPeriodSummary]
+    processed_matching_periods: List[ProcessedMatchingPeriod] = []
     scientific_guidelines: List[str]

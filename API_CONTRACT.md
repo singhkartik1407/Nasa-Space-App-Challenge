@@ -38,10 +38,13 @@ If your dev server uses a different port, set `CORS_ORIGINS` in the backend `.en
 To maintain scientific integrity in all UI charts, cards, map popups, and legends:
 
 1. **Observations vs Fires:** Detections are satellite pixel anomalies, not unique wildfires. Always label them as `Detections` or `Observations`.
-2. **Candidate Matching (A vs B):**
-   - **Profile A (Default):** 1-hour time window, 0 km added buffer. Conservative baseline.
-   - **Profile B (Selectable):** 3-hour time window, 0 km added buffer. Higher-recall alternative.
+2. **Candidate Matching Profiles:**
+   - **Profile A (Default Baseline):** 1-hour time window ($\le 60.0\,\text{min}$), 0.0 km added buffer ($d \le r_{\text{MODIS}} + r_{\text{VIIRS}}$). Conservative baseline.
+   - **Profile B (Selectable Alternative):** 3-hour time window ($\le 180.0\,\text{min}$), 0.0 km added buffer ($d \le r_{\text{MODIS}} + r_{\text{VIIRS}}$). Higher-recall alternative.
+   - *Note on Historical Consistency:* Profile B is canonical at 3h / 0km buffer across all 175 months. Any reference to 2h / 1km in historical documentation was an erroneous prose typo and does not reflect backend or data thresholds.
+   - **Candidate Superset Screening Envelope:** 6-hour time window ($\le 360.0\,\text{min}$), 0.50 km added buffer (Profile E envelope).
    - A candidate pair is a spatiotemporal association under footprint geometry, **NOT a confirmed physical fire identity**.
+   - All 175 months (2012-01 to 2026-07) are available dynamically via `GET /api/v1/metadata` (`processed_matching_periods`).
 3. **No-Candidate Status:** Always label unmatched observations as **`Coverage Unverified`**. Do not describe them as "sensor-exclusive" or "false detections" (satellite coverage may have been absent).
 4. **Graph Components:** Always label component metrics as **`Candidate Graph Components`**, never "Fire Events". Naive graph chaining can bridge separate fires.
 5. **Fire Radiative Power (FRP):** FRP values from MODIS and VIIRS use different spatial footprints and saturation thresholds. **Never sum them together**. Always plot and report MODIS FRP and VIIRS FRP in separate series or cards.
@@ -61,6 +64,7 @@ To maintain scientific integrity in all UI charts, cards, map popups, and legend
 | `GET` | `/api/v1/overview` | High-level summary cards (counts, FRP, matching status) |
 | `GET` | `/api/v1/detections` | Paginated fire detections with viewport, date, sensor, and FRP filters |
 | `GET` | `/api/v1/detections/{row_id}` | Detailed detection inspection with attached candidate matches |
+| `GET` | `/api/v1/map/aggregate` | Multi-resolution spatial aggregation grid cells (0.5°/0.15°) for national & regional visualization |
 | `GET` | `/api/v1/candidates` | Paginated candidate pairs under Profile A or B with bbox filter |
 | `GET` | `/api/v1/candidates/{candidate_id}` | Complete candidate pair detail and footprint geometry metrics |
 | `GET` | `/api/v1/analytics/activity` | Daily or monthly detection timeseries (UTC or IST) |
@@ -344,7 +348,63 @@ Detailed inspection for one row, including any attached candidate matches.
 
 ---
 
-### 3.6 `GET /api/v1/candidates`
+### 3.6 `GET /api/v1/map/aggregate`
+Multi-resolution spatial grid aggregation directly from Parquet. Enables national overview visualization of millions of observations without client memory bottlenecks.
+
+**Query Parameters:**
+- `start_date` (`YYYY-MM-DD`, optional, default: start of common period `2012-01-21`)
+- `end_date` (`YYYY-MM-DD`, optional, default: end of common period `2026-07-14`)
+- `sensor` (`ALL`, `MODIS`, `VIIRS`, default: `ALL`)
+- `platform` (`Terra`, `Aqua`, `Suomi-NPP`, optional)
+- `daynight` (`D` or `N`, optional)
+- `min_lat`, `max_lat`, `min_lon`, `max_lon` (viewport bounding box, optional)
+- `resolution_deg` (float, e.g. `0.5` for overview ~50km, `0.15` for regional ~15km, default: `0.5`)
+- `zoom` (float, optional; auto-adapts resolution to `0.15` when zoom $\ge 6$)
+
+**Response Example (GeoJSON FeatureCollection):**
+```json
+{
+  "type": "FeatureCollection",
+  "query": {
+    "start_date": "2012-01-21",
+    "end_date": "2026-07-14",
+    "sensor": "ALL",
+    "resolution_deg": 0.5,
+    "bbox": null
+  },
+  "summary": {
+    "total_cells": 1267,
+    "total_observations": 9957182,
+    "modis_observations": 1232096,
+    "viirs_observations": 8725086,
+    "resolution_deg": 0.5
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [86.5, 24.0]
+      },
+      "properties": {
+        "cell_id": "cell_0.5_24.00_86.50",
+        "latitude": 24.0,
+        "longitude": 86.5,
+        "total_count": 126874,
+        "modis_count": 9720,
+        "viirs_count": 117154,
+        "modis_avg_frp": 10.77,
+        "viirs_avg_frp": 2.53,
+        "resolution_deg": 0.5
+      }
+    }
+  ]
+}
+```
+
+---
+
+### 3.7 `GET /api/v1/candidates`
 **Query Parameters:**
 - `profile` (`A` default, `B` selectable)
 - `start_date`, `end_date` (`YYYY-MM-DD`)
