@@ -25,3 +25,4 @@ scratch/
 reports/audit/matching_*/
 !reports/audit/matching_20120301_20120331/
 !reports/audit/matching_20240301_20240331/
+/docs/screenshots/

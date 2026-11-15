@@ -25,22 +25,7 @@ OUR PROJECT covers approximately **9.95 million satellite observations**.
 
 ## Screenshots
 
-Place the screenshots in `docs/screenshots/` using these filenames. After uploading an image, remove the HTML comment around its image line so it appears on GitHub. The folder is included in the repository with a placeholder file.
-
-### Dashboard
-
-![FireScope Dashboard](docs/screenshots/Dashboard.png)
-<!-- Screenshot file: docs/screenshots/dashboard.png -->
-
-### Fire Map
-
-![FireScope Fire Map](docs/screenshots/FireMap.png)
-<!-- Screenshot file: docs/screenshots/fire-map.png -->
-
-### Analytics
-
-![FireScope Analytics](docs/screenshots/Analytics.png)
-<!-- Screenshot file: docs/screenshots/analytics.png -->
+Application screenshots are maintained locally and are not included in this repository.
 
 
 ## Data Sources & Attribution
