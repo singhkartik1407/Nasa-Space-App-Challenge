@@ -25,7 +25,17 @@ OUR PROJECT covers approximately **9.95 million satellite observations**.
 
 ## Screenshots
 
-Application screenshots are maintained locally and are not included in this repository.
+### Dashboard
+
+![FireScope Dashboard](screenshots/ui-01.png)
+
+### Fire Map
+
+![FireScope Fire Map](screenshots/ui-02.png)
+
+### Analytics
+
+![FireScope Analytics](screenshots/ui-03.png)
 
 
 ## Data Sources & Attribution
