@@ -29,23 +29,19 @@ Place the screenshots in `docs/screenshots/` using these filenames. After upload
 
 ### Dashboard
 
-<!-- ![FireScope Dashboard](docs/screenshots/dashboard.png) -->
+![FireScope Dashboard](docs/screenshots/Dashboard.png)
 <!-- Screenshot file: docs/screenshots/dashboard.png -->
 
 ### Fire Map
 
-<!-- ![FireScope Fire Map](docs/screenshots/fire-map.png) -->
+![FireScope Fire Map](docs/screenshots/FireMap.png)
 <!-- Screenshot file: docs/screenshots/fire-map.png -->
 
 ### Analytics
 
-<!-- ![FireScope Analytics](docs/screenshots/analytics.png) -->
+![FireScope Analytics](docs/screenshots/Analytics.png)
 <!-- Screenshot file: docs/screenshots/analytics.png -->
 
-### Match Explorer
-
-<!-- ![FireScope Match Explorer](docs/screenshots/match-explorer.png) -->
-<!-- Screenshot file: docs/screenshots/match-explorer.png -->
 
 ## Data Sources & Attribution
 
