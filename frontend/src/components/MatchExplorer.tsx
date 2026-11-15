@@ -116,56 +116,31 @@ export default function MatchExplorer() {
   return (
     <div className="match-explorer-content">
       {/* Profile & Period Selection Controls */}
-      <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#94a3b8" }}>MATCH PROFILE:</span>
+      <section className="profile-selector-bar">
+        <div className="profile-btn-group">
+          <span className="profile-label">MATCH PROFILE:</span>
           <button
             type="button"
+            className={`profile-pill ${profile === "A" ? "active" : ""}`}
             onClick={() => handleProfileChange("A")}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              background: profile === "A" ? "#0284c7" : "#1e293b",
-              color: "#fff",
-              border: "1px solid #334155",
-            }}
           >
             Profile A (1h, 0km) — Default
           </button>
           <button
             type="button"
+            className={`profile-pill alt ${profile === "B" ? "active" : ""}`}
             onClick={() => handleProfileChange("B")}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              background: profile === "B" ? "#059669" : "#1e293b",
-              color: "#fff",
-              border: "1px solid #334155",
-            }}
           >
             Profile B (3h, 0km) — Alternative
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#94a3b8" }}>MATCHING PERIOD:</span>
+        <div className="period-group">
+          <span className="profile-label">PERIOD:</span>
           <select
+            className="period-select"
             value={period}
             onChange={(e) => handlePeriodChange(e.target.value)}
-            style={{
-              padding: "6px 12px",
-              background: "#0f172a",
-              color: "#f8fafc",
-              border: "1px solid #334155",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
           >
             {availablePeriods.map((p) => (
               <option key={p.period_id} value={p.period_id}>
@@ -173,17 +148,7 @@ export default function MatchExplorer() {
               </option>
             ))}
           </select>
-          <span
-            style={{
-              padding: "3px 8px",
-              borderRadius: "4px",
-              fontSize: "11px",
-              fontWeight: 700,
-              background: currentStatus === "VALIDATED" ? "rgba(16, 185, 129, 0.2)" : "rgba(14, 165, 233, 0.2)",
-              color: currentStatus === "VALIDATED" ? "#34d399" : "#38bdf8",
-              border: `1px solid ${currentStatus === "VALIDATED" ? "#059669" : "#0284c7"}`,
-            }}
-          >
+          <span className={`period-status-badge ${currentStatus.toLowerCase()}`}>
             {currentStatus}
           </span>
         </div>

@@ -104,16 +104,20 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="settings-row">
-          <div><strong>Map library</strong><span>Interactive WebGL/raster map rendering</span></div>
-          <span className="settings-value">MapLibre GL</span>
+          <div><strong>Primary map provider</strong><span>Interactive geospatial rendering engine</span></div>
+          <span className="settings-value">
+            {Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY) ? "Google Maps (deck.gl)" : "MapLibre GL (OpenStreetMap)"}
+          </span>
         </div>
         <div className="settings-row">
-          <div><strong>Basemap</strong><span>OpenStreetMap raster tiles</span></div>
-          <span className="settings-value" style={{ color: "#10b981" }}>Connected</span>
+          <div><strong>Google Maps key status</strong><span>3D vector terrain & deck.gl integration</span></div>
+          <span className="settings-status" style={{ color: Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY) ? "var(--status-matched)" : "var(--status-profile-b)" }}>
+            {Boolean(import.meta.env.VITE_GOOGLE_MAPS_API_KEY) ? "Active (API key loaded)" : "Pending (set VITE_GOOGLE_MAPS_API_KEY in .env)"}
+          </span>
         </div>
         <div className="settings-row">
           <div><strong>Geographic extent</strong><span>Default view bounding box</span></div>
-          <span className="settings-value">India (67.5°E to 98.0°E, 6.5°N to 37.5°N)</span>
+          <span className="settings-value">India Subcontinent (67.5°E to 98.0°E, 6.5°N to 37.5°N)</span>
         </div>
       </section>
 

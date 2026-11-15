@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { GoogleMapsOverlay } from "@deck.gl/google-maps";
 import { ScatterplotLayer } from "@deck.gl/layers";
@@ -17,13 +17,11 @@ interface GoogleFireMapProps {
     sensor?: string;
     daynight?: string;
   };
-  onSwitchToMapLibre?: () => void;
 }
 
 export default function GoogleFireMap({
   compact = false,
   filters,
-  onSwitchToMapLibre,
 }: GoogleFireMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -37,6 +35,8 @@ export default function GoogleFireMap({
   const [selectedCell, setSelectedCell] = useState<MapAggregateFeature["properties"] | null>(null);
   const [selectedDetection, setSelectedDetection] = useState<MapDetectionFeature["properties"] | null>(null);
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const [showModis, setShowModis] = useState(true);
+  const [showViirs, setShowViirs] = useState(true);
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
   const mapId = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined;
@@ -168,11 +168,11 @@ export default function GoogleFireMap({
 
     const layers: any[] = [];
 
-    if (aggregateFeatures.length > 0) {
+    if (aggregateFeatures.some((f) => (showModis && f.properties.modis_count > 0) || (showViirs && f.properties.viirs_count > 0))) {
       layers.push(
         new ScatterplotLayer<MapAggregateFeature>({
           id: "google-aggregate-layer",
-          data: aggregateFeatures,
+          data: aggregateFeatures.filter((f) => (showModis && f.properties.modis_count > 0) || (showViirs && f.properties.viirs_count > 0)),
           pickable: true,
           opacity: 0.8,
           stroked: true,
@@ -186,11 +186,13 @@ export default function GoogleFireMap({
             d.geometry.coordinates[1],
           ],
           getRadius: (d: MapAggregateFeature) => {
-            const count = d.properties.total_count;
+            const count = (showModis ? d.properties.modis_count : 0) + (showViirs ? d.properties.viirs_count : 0);
             return Math.min(25000, Math.max(4000, Math.sqrt(count) * 800));
           },
           getFillColor: (d: MapAggregateFeature) => {
             const p = d.properties;
+            if (showModis && !showViirs) return [249, 115, 22, 200];
+            if (showViirs && !showModis) return [59, 130, 246, 200];
             if (p.modis_count > 0 && p.viirs_count === 0) {
               return [249, 115, 22, 200]; // MODIS orange
             }
@@ -211,11 +213,11 @@ export default function GoogleFireMap({
           },
         })
       );
-    } else if (individualFeatures.length > 0) {
+    } else if (individualFeatures.some((f) => (f.properties.sensor === "MODIS" && showModis) || (f.properties.sensor === "VIIRS" && showViirs))) {
       layers.push(
         new ScatterplotLayer<MapDetectionFeature>({
           id: "google-detections-layer",
-          data: individualFeatures,
+          data: individualFeatures.filter((f) => (f.properties.sensor === "MODIS" && showModis) || (f.properties.sensor === "VIIRS" && showViirs)),
           pickable: true,
           opacity: 0.85,
           stroked: true,
@@ -249,54 +251,37 @@ export default function GoogleFireMap({
     }
 
     overlayRef.current.setProps({ layers });
-  }, [aggregateFeatures, individualFeatures]);
-
-  const totalObs = useMemo(() => {
-    if (aggregateFeatures.length > 0) {
-      return aggregateFeatures.reduce((acc, f) => acc + f.properties.total_count, 0);
-    }
-    return individualFeatures.length;
-  }, [aggregateFeatures, individualFeatures]);
+  }, [aggregateFeatures, individualFeatures, showModis, showViirs]);
 
   if (error) {
     return (
       <div
         className="google-map-fallback"
         style={{
-          padding: "24px",
-          background: "#0f172a",
-          color: "#f8fafc",
-          borderRadius: "8px",
+          padding: "32px 24px",
+          background: "var(--bg-surface)",
+          color: "var(--text-primary)",
+          borderRadius: "var(--radius-xl)",
+          border: "1px solid var(--border-subtle)",
           textAlign: "center",
           height: "100%",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "12px",
+          gap: "14px",
+          boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.25)",
         }}
       >
-        <div style={{ color: "#f87171", fontWeight: 600 }}>Google Maps / deck.gl Notice</div>
-        <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "440px" }}>
-          {error}. MapLibre with OpenStreetMap raster tiles is available as the stable primary basemap.
+        <div style={{ color: "var(--status-profile-b)", fontWeight: 700, fontSize: "14px", letterSpacing: "0.5px" }}>
+          Google Maps (deck.gl) Integration Notice
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "12px", maxWidth: "480px", lineHeight: "1.6", margin: 0 }}>
+          {error}
         </p>
-        {onSwitchToMapLibre && (
-          <button
-            type="button"
-            onClick={onSwitchToMapLibre}
-            style={{
-              background: "#3b82f6",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              padding: "6px 14px",
-              cursor: "pointer",
-              fontWeight: 500,
-            }}
-          >
-            Switch to MapLibre (OSM)
-          </button>
-        )}
+        <p style={{ color: "var(--text-dim)", fontSize: "11px", maxWidth: "480px", margin: 0 }}>
+          To activate Google Maps with 3D terrain and deck.gl overlays, set <code style={{ color: "var(--sensor-viirs)" }}>VITE_GOOGLE_MAPS_API_KEY</code> in <code style={{ color: "var(--sensor-viirs)" }}>frontend/.env</code>.
+        </p>
       </div>
     );
   }
@@ -325,29 +310,37 @@ export default function GoogleFireMap({
         </div>
       )}
 
-      {/* Mode and scale indicator */}
-      <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          left: "12px",
-          background: "rgba(15, 23, 42, 0.9)",
-          color: "#f8fafc",
-          padding: "6px 12px",
-          borderRadius: "6px",
-          fontSize: "12px",
-          border: "1px solid #334155",
-          zIndex: 10,
-        }}
-      >
-        <span style={{ fontWeight: 600, color: "#38bdf8" }}>deck.gl WebGL Layer</span> ·{" "}
-        {zoomLevel < 6
-          ? `National Hotspot Grid (0.5° · ${aggregateFeatures.length} cells · ${totalObs.toLocaleString()} obs)`
-          : zoomLevel < 10
-            ? `Regional Hotspot Grid (0.15° · ${aggregateFeatures.length} cells)`
-            : `Individual Detections (Local view · ${individualFeatures.length} spots)`}
+      {/* Sensor visibility controls */}
+      <div style={{
+        position: "absolute", top: "12px", right: "12px",
+        display: "flex", gap: "6px", padding: "7px",
+        background: "rgba(15, 23, 42, 0.94)",
+        border: "1px solid #334155", borderRadius: "8px",
+        zIndex: 20
+      }}>
+        <button type="button" onClick={() => setShowModis((v) => !v)}
+          aria-pressed={showModis}
+          style={{
+            padding: "7px 10px", borderRadius: "5px", cursor: "pointer",
+            border: "1px solid #f97316",
+            background: showModis ? "rgba(249,115,22,0.2)" : "transparent",
+            color: showModis ? "#fdba74" : "#94a3b8",
+            fontSize: "11px", fontWeight: 700
+          }}>
+          MODIS {showModis ? "ON" : "OFF"}
+        </button>
+        <button type="button" onClick={() => setShowViirs((v) => !v)}
+          aria-pressed={showViirs}
+          style={{
+            padding: "7px 10px", borderRadius: "5px", cursor: "pointer",
+            border: "1px solid #3b82f6",
+            background: showViirs ? "rgba(59,130,246,0.2)" : "transparent",
+            color: showViirs ? "#93c5fd" : "#94a3b8",
+            fontSize: "11px", fontWeight: 700
+          }}>
+          VIIRS {showViirs ? "ON" : "OFF"}
+        </button>
       </div>
-
       {/* Aggregate cell popup */}
       {selectedCell && popupPos && (
         <div
@@ -367,15 +360,15 @@ export default function GoogleFireMap({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-            <strong style={{ color: "#38bdf8" }}>Hotspot Cell ({selectedCell.resolution_deg}°)</strong>
+            <strong style={{ color: "#38bdf8" }}>Hotspot Cell ({selectedCell.resolution_deg}Ã‚Â°)</strong>
             <button
               onClick={() => setSelectedCell(null)}
               style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
             >
-              ✕
+              Ã¢Å“â€¢
             </button>
           </div>
-          <div>Centroid: {selectedCell.latitude.toFixed(2)}°N, {selectedCell.longitude.toFixed(2)}°E</div>
+          <div>Centroid: {selectedCell.latitude.toFixed(2)}Ã‚Â°N, {selectedCell.longitude.toFixed(2)}Ã‚Â°E</div>
           <div>Total Observations: <strong>{selectedCell.total_count.toLocaleString()}</strong></div>
           <div style={{ color: "#f97316" }}>MODIS: {selectedCell.modis_count.toLocaleString()} (avg {selectedCell.modis_avg_frp} MW)</div>
           <div style={{ color: "#3b82f6" }}>VIIRS: {selectedCell.viirs_count.toLocaleString()} (avg {selectedCell.viirs_avg_frp} MW)</div>
@@ -411,7 +404,7 @@ export default function GoogleFireMap({
               onClick={() => setSelectedDetection(null)}
               style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
             >
-              ✕
+              Ã¢Å“â€¢
             </button>
           </div>
           <div>Satellite: {selectedDetection.satellite}</div>
@@ -426,3 +419,5 @@ export default function GoogleFireMap({
     </div>
   );
 }
+
+

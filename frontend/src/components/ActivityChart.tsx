@@ -88,16 +88,16 @@ export default function ActivityChart({ filters }: Props) {
           <div style={{ width: "100%", height: 220, minHeight: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "6px", fontSize: "12px" }}
+                  contentStyle={{ backgroundColor: "#0c1424", borderColor: "#22324b", borderRadius: "10px", fontSize: "12px", boxShadow: "0 10px 25px rgba(0,0,0,0.4)" }}
                   itemStyle={{ color: "#f8fafc" }}
                 />
-                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "6px" }} />
-                <Bar dataKey="MODIS" fill="#f97316" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="VIIRS" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
+                <Bar dataKey="MODIS" fill="#f97316" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="VIIRS" fill="#38bdf8" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

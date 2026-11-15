@@ -234,8 +234,7 @@ function App() {
               <section className="welcome-section">
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> INDIA · SATELLITE MONITORING</div>
-                  <h1>Fire activity <span>overview</span></h1>
-                  <p className="page-description">Monitor satellite fire detections, explore activity patterns, and compare sensor observations across India.</p>
+                  <h1>Fire activity</h1>
                 </div>
                 <button className="export-button" disabled><Download size={16} /> Export data <span className="coming-soon">SOON</span></button>
               </section>
@@ -249,72 +248,38 @@ function App() {
                   <label className="filter-control"><Radio size={15} /><span>Platform</span><select aria-label="Platform" value={filters.platform} onChange={(e) => updateFilter("platform", e.target.value)}>{platforms.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></label>
                   <label className="filter-control"><Zap size={15} /><span>Day / Night</span><select aria-label="Day or night" value={filters.daynight} onChange={(e) => updateFilter("daynight", e.target.value)}><option value="ALL">All</option><option value="D">Day</option><option value="N">Night</option></select></label>
                 </div>
-                <div className="filter-presets" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
-                  <span style={{ fontSize: "12px", color: "#94a3b8", alignSelf: "center", fontWeight: 600 }}>PRESETS:</span>
+                <div className="filter-presets">
+                  <span className="preset-label">PERIOD PRESETS:</span>
                   <button
                     type="button"
-                    style={{
-                      background: filters.start === "2012-01-21" && filters.end === "2026-07-14" ? "#3b82f6" : "#1e293b",
-                      color: "#fff",
-                      border: "1px solid #475569",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
+                    className={`preset-btn ${filters.start === "2012-01-21" && filters.end === "2026-07-14" ? "active" : ""}`}
                     onClick={() => setFilters((current) => ({ ...current, start: "2012-01-21", end: "2026-07-14" }))}
                   >
                     Full Archive (2012–2026)
                   </button>
                   <button
                     type="button"
-                    style={{
-                      background: filters.start === "2024-03-01" && filters.end === "2024-03-31" ? "#3b82f6" : "#1e293b",
-                      color: "#fff",
-                      border: "1px solid #475569",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
+                    className={`preset-btn ${filters.start === "2024-03-01" && filters.end === "2024-03-31" ? "active" : ""}`}
                     onClick={() => setFilters((current) => ({ ...current, start: "2024-03-01", end: "2024-03-31" }))}
                   >
                     March 2024 Pilot
                   </button>
                   <button
                     type="button"
-                    style={{
-                      background: filters.start === "2012-03-01" && filters.end === "2012-03-31" ? "#3b82f6" : "#1e293b",
-                      color: "#fff",
-                      border: "1px solid #475569",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
+                    className={`preset-btn ${filters.start === "2012-03-01" && filters.end === "2012-03-31" ? "active" : ""}`}
                     onClick={() => setFilters((current) => ({ ...current, start: "2012-03-01", end: "2012-03-31" }))}
                   >
                     March 2012 Pilot
                   </button>
                   <button
                     type="button"
-                    style={{
-                      background: filters.start === "2024-04-01" && filters.end === "2024-04-30" ? "#3b82f6" : "#1e293b",
-                      color: "#fff",
-                      border: "1px solid #475569",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
+                    className={`preset-btn ${filters.start === "2024-04-01" && filters.end === "2024-04-30" ? "active" : ""}`}
                     onClick={() => setFilters((current) => ({ ...current, start: "2024-04-01", end: "2024-04-30" }))}
                   >
                     April 2024 (Matched)
                   </button>
                 </div>
-                <div className="filter-note" style={{ marginTop: "8px" }}>
-                  Full observation archive: Jan 21, 2012 – Jul 14, 2026 (UTC). Note: VIIRS Suomi-NPP observations conclude Jul 10, 2026. Cross-sensor candidate matching is processed for pilot & audited monthly windows.
-                </div>
+                
                 {filters.start > filters.end && <div className="filter-error">Start date must be earlier than or equal to end date.</div>}
                 <div className="active-filter-summary">
                   <strong>Current selection:</strong> {filters.sensor === "BOTH" ? "Both sensors" : filters.sensor} · {filters.platform === "ALL" ? "All applicable platforms" : filters.platform} · {filters.daynight === "ALL" ? "Day and night" : filters.daynight === "D" ? "Daytime" : "Nighttime"} · {filters.start} to {filters.end}
@@ -381,7 +346,6 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> INDIA · HISTORICAL ACTIVITY</div>
                   <h1>Activity <span>calendar</span></h1>
-                  <p className="page-description">Explore monthly satellite detection activity across the selected year.</p>
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> LIVE MONTHLY API CONNECTED</div>
               </section>
@@ -400,7 +364,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> INDIA · SENSOR ANALYSIS</div>
                   <h1>Satellite <span>analytics</span></h1>
-                  <p className="page-description">Review sensor-specific detection patterns and potential relationships.</p>
+                  
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> SENSOR & FRP ANALYTICS ACTIVE</div>
               </section>
@@ -412,7 +376,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> INDIA · SENSOR COMPARISON</div>
                   <h1>Match <span>explorer</span></h1>
-                  <p className="page-description">Examine candidate spatiotemporal relationships between MODIS and VIIRS records under Profiles A and B.</p>
+                  
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> CANDIDATE MATCHES CONNECTED</div>
               </section>
@@ -424,7 +388,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> FIRESCOPE · PROJECT GUIDE</div>
                   <h1>Project <span>documentation</span></h1>
-                  <p className="page-description">Understand the satellite datasets, terminology, and scientific interpretation used in FireScope.</p>
+                
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> REFERENCE GUIDE</div>
               </section>
@@ -436,7 +400,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> FIRESCOPE · CONFIGURATION</div>
                   <h1>Application <span>settings</span></h1>
-                  <p className="page-description">Review the current frontend configuration and connection status.</p>
+                  
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> FASTAPI CONNECTED</div>
               </section>
@@ -448,7 +412,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> FIRESCOPE · DATA CATALOG</div>
                   <h1>Data <span>sources</span></h1>
-                  <p className="page-description">Review the satellite datasets and collection versions used by FireScope.</p>
+                  
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> PARQUET ENGINE ACTIVE</div>
               </section>
@@ -460,7 +424,7 @@ function App() {
                 <div>
                   <div className="eyebrow"><span className="eyebrow-line" /> INDIA · GEOSPATIAL MONITORING</div>
                   <h1>Fire <span>map</span></h1>
-                  <p className="page-description">Explore the geographic distribution of satellite detection records across India.</p>
+                
                 </div>
                 <div className="demo-pill"><span style={{ background: "#10b981" }} /> REAL DETECTIONS ACTIVE</div>
               </section>

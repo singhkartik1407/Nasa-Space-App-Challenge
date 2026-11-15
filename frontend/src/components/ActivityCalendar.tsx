@@ -99,11 +99,11 @@ export default function ActivityCalendar({
             const totalObs = (data?.modis_detections || 0) + (data?.viirs_detections || 0);
 
             return (
-              <div className="calendar-month" key={name}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 600 }}>{name}</span>
+              <div className={`calendar-month ${hasData ? "has-data" : ""}`} key={name}>
+                <div className="calendar-month-header">
+                  <span className="month-name">{name}</span>
                   {hasData && (
-                    <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: 600 }}>
+                    <span className="month-obs-tag">
                       {totalObs.toLocaleString()} obs
                     </span>
                   )}
@@ -112,16 +112,18 @@ export default function ActivityCalendar({
                 {loading ? (
                   <div className="calendar-no-data">Loading...</div>
                 ) : hasData ? (
-                  <div style={{ marginTop: "6px", fontSize: "12px", display: "flex", flexDirection: "column", gap: "3px" }}>
-                    <div style={{ color: "#fb923c" }}>
-                      MODIS: <strong>{(data.modis_detections || 0).toLocaleString()}</strong>
+                  <div className="calendar-sensor-breakdown">
+                    <div className="sensor-row modis-row">
+                      <span>MODIS</span>
+                      <strong>{(data.modis_detections || 0).toLocaleString()}</strong>
                     </div>
-                    <div style={{ color: "#60a5fa" }}>
-                      VIIRS: <strong>{(data.viirs_detections || 0).toLocaleString()}</strong>
+                    <div className="sensor-row viirs-row">
+                      <span>VIIRS</span>
+                      <strong>{(data.viirs_detections || 0).toLocaleString()}</strong>
                     </div>
                   </div>
                 ) : year === 2026 && num > 7 ? (
-                  <div className="calendar-no-data" style={{ color: "#64748b" }}>
+                  <div className="calendar-no-data muted">
                     Outside observation window
                   </div>
                 ) : (

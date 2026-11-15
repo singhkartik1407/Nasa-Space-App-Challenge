@@ -60,8 +60,8 @@ export default function DataSources() {
 
   return (
     <div className="data-sources-content">
-      <section className="panel data-source-status" style={{ borderLeft: readiness?.ready ? "4px solid #10b981" : "4px solid #f59e0b" }}>
-        <div className="data-source-status-icon" style={{ color: readiness?.ready ? "#10b981" : "#f59e0b" }}>
+      <section className={`panel data-source-status ${readiness?.ready ? "ready" : "pending"}`}>
+        <div className="data-source-status-icon">
           {readiness?.ready ? "✓" : "!"}
         </div>
         <div>
@@ -72,8 +72,8 @@ export default function DataSources() {
               : error || "Waiting for backend response on http://127.0.0.1:8000."}
           </p>
         </div>
-        <span className="section-tag" style={{ background: readiness?.ready ? "#059669" : "#d97706", color: "#fff" }}>
-          {readiness?.ready ? "LIVE DATA READY" : "PENDING"}
+        <span className={`section-tag ${readiness?.ready ? "ready" : "pending"}`}>
+          <span /> {readiness?.ready ? "LIVE DATA READY" : "PENDING"}
         </span>
       </section>
 
