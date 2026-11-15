@@ -8,7 +8,10 @@ The system features:
 - High-performance analytical queries directly over normalized Parquet files (9.95M+ observations) using an embedded **DuckDB** engine.
 - Cross-sensor candidate relationship matching evaluating footprint overlap and temporal proximity under **Profile A** (conservative default: $\Delta t \le 1\,\text{h}$, $0\,\text{km}$ buffer) and **Profile B** (alternative: $\Delta t \le 3\,\text{h}$, $0\,\text{km}$ buffer).
 - Production-grade **FastAPI** backend with automated testing, SQLite local metadata persistence, and PostgreSQL-ready schema.
-- High-performance **React + TypeScript + Vite** frontend featuring MapLibre WebGL fire mapping, interactive Recharts analytics, live candidate inspection, and full scientific safeguards.
+- **Tests:** 30 automated unit and regression tests passing (`scripts\test_backend.cmd`).
+- Multi-resolution spatial aggregation (`GET /api/v1/map/aggregate`) rendering national overview (0.5°), regional grid (0.15°), and individual local detections with telemetry popups.
+- Dual basemap architecture: MapLibre (OSM) rock-solid default with Google Maps (deck.gl) overlay support.
+- Progressive historical candidate matching runner (`scripts\batch_match_historical.py`) with manifest tracking (`data\harmonized\manifest.json`).
 
 ---
 
@@ -24,14 +27,23 @@ The system features:
 
 ---
 
-## Audited Pilot Period Reconciliation
+## Audited Pilot Period & Full Historical Archive Reconciliation
 
-The backend and frontend strictly reproduce the verified benchmark reconciliation counts across both pilot periods:
+The backend and frontend strictly reproduce the verified benchmark reconciliation counts across both pilot periods, and maintain 100% mathematical consistency across all 175 months in the historical common observation archive:
 
-| Pilot Period | MODIS Detections | VIIRS Detections | Profile A Pairs ($\Delta t \le 1\text{h}$) | Profile B Pairs ($\Delta t \le 3\text{h}$) |
-|---|---:|---:|---:|---:|
-| **March 2012** | 30,161 | 182,644 | 44,941 | 60,179 |
-| **March 2024** | 14,139 | 103,369 | 19,949 | 24,815 |
+| Period | Status | MODIS Detections | VIIRS Detections | Profile A Pairs ($\Delta t \le 1\text{h}$) | Profile B Pairs ($\Delta t \le 3\text{h}$) | Superset Edges ($\Delta t \le 6\text{h}$) |
+|---|:---:|---:|---:|---:|---:|---:|
+| **March 2012 (Pilot)** | VALIDATED | 30,161 | 182,644 | 44,941 | 60,179 | 86,863 |
+| **March 2024 (Pilot)** | VALIDATED | 14,139 | 103,369 | 19,949 | 24,815 | 38,250 |
+| **Full Archive (175 Months)** | 173 COMPLETED, 2 VALIDATED | 1,232,096 | 8,725,086 | 1,319,525 | 1,815,450 | 2,753,852 |
+
+### Scientific Consistency Audit Deliverables
+- `historical_profile_consistency.csv` — Monthly profile definitions and validation against canonical A (1h, 0km) and B (3h, 0km).
+- `historical_superset_envelope_audit.csv` — Full archive screening envelope verification ($\Delta t \le 6.0\,\text{h}$, buffer $\le 0.50\,\text{km}$).
+- `historical_boundary_completeness_audit.csv` — Empirical separate vs combined window comparisons and orbital overpass analysis.
+- `historical_manifest_integrity.csv` — Per-month Parquet file presence, row counts, candidate ID types, and duplicate checks.
+- `historical_candidate_totals_by_profile.csv` — Annual breakdown of observations and candidate pairs across profiles A, B, C, D, and E.
+- `FIRESCOPE_FINAL_SCIENTIFIC_CONSISTENCY_REPORT.md` — Authoritative final engineering audit report.
 
 ---
 
@@ -138,6 +150,7 @@ D:\FireScope\
 | `GET` | `/api/v1/overview` | High-level summary cards (counts, FRP, matching status) |
 | `GET` | `/api/v1/detections` | Paginated fire detections with viewport, date, sensor, and FRP filters |
 | `GET` | `/api/v1/detections/{row_id}` | Detailed detection inspection with attached candidate matches |
+| `GET` | `/api/v1/map/aggregate` | Multi-resolution spatial aggregation grid cells for national & regional visualization |
 | `GET` | `/api/v1/candidates` | Paginated candidate pairs under Profile A or B with bbox filter |
 | `GET` | `/api/v1/candidates/{candidate_id}` | Complete candidate pair detail and footprint geometry metrics |
 | `GET` | `/api/v1/analytics/activity` | Daily or monthly detection timeseries (UTC or IST) |

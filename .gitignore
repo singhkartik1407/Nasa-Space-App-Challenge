@@ -20,3 +20,8 @@ frontend/node_modules/
 frontend/dist/
 *.local
 .env.local
+scratch/
+*.log
+reports/audit/matching_*/
+!reports/audit/matching_20120301_20120331/
+!reports/audit/matching_20240301_20240331/

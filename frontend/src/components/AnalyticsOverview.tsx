@@ -4,11 +4,21 @@ import {
   getRelationshipAnalytics,
   getSensorAnalytics,
 } from "../lib/api/analytics";
+import { getMetadata } from "../lib/api/metadata";
 import type {
   FrpAnalyticsResponse,
   RelationshipAnalyticsResponse,
   SensorAnalyticsResponse,
 } from "../lib/api/types";
+
+interface PeriodItem {
+  period_id: string;
+  start: string;
+  end: string;
+  label: string;
+  status: string;
+  is_pilot: boolean;
+}
 
 export default function AnalyticsOverview() {
   const [frp, setFrp] = useState<FrpAnalyticsResponse | null>(null);
@@ -16,15 +26,50 @@ export default function AnalyticsOverview() {
   const [relationships, setRelationships] = useState<RelationshipAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<"2024-03" | "2012-03">("2024-03");
+  const [period, setPeriod] = useState<string>("2024-03");
+
+  const [availablePeriods, setAvailablePeriods] = useState<PeriodItem[]>([
+    { period_id: "2024-03", start: "2024-03-01", end: "2024-03-31", label: "2024-03 (March 2024 · Pilot)", status: "VALIDATED", is_pilot: true },
+    { period_id: "2024-04", start: "2024-04-01", end: "2024-04-30", label: "2024-04 (April 2024)", status: "COMPLETED", is_pilot: false },
+    { period_id: "2012-03", start: "2012-03-01", end: "2012-03-31", label: "2012-03 (March 2012 · Pilot)", status: "VALIDATED", is_pilot: true },
+    { period_id: "2012-04", start: "2012-04-01", end: "2012-04-30", label: "2012-04 (April 2012)", status: "COMPLETED", is_pilot: false },
+  ]);
+
+  useEffect(() => {
+    getMetadata()
+      .then((meta) => {
+        if (meta.processed_matching_periods && meta.processed_matching_periods.length > 0) {
+          const list: PeriodItem[] = meta.processed_matching_periods.map((p) => ({
+            period_id: p.period_id,
+            start: p.start_date,
+            end: p.end_date,
+            label: `${p.period_id} (${p.status}${p.is_pilot ? " · Pilot" : ""})`,
+            status: p.status,
+            is_pilot: p.is_pilot,
+          }));
+          list.sort((a, b) => b.period_id.localeCompare(a.period_id));
+          setAvailablePeriods(list);
+        }
+      })
+      .catch((err) => console.warn("Failed to load metadata periods in Analytics:", err));
+  }, []);
+
+  const selectedObj = availablePeriods.find((p) => p.period_id === period) || availablePeriods[0] || {
+    period_id: "2024-03",
+    start: "2024-03-01",
+    end: "2024-03-31",
+    label: "2024-03 (March 2024 · Pilot)",
+    status: "VALIDATED",
+    is_pilot: true,
+  };
+  const startDate = selectedObj.start;
+  const endDate = selectedObj.end;
+  const currentStatus = selectedObj.status;
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
-
-    const startDate = period === "2024-03" ? "2024-03-01" : "2012-03-01";
-    const endDate = period === "2024-03" ? "2024-03-31" : "2012-03-31";
 
     Promise.all([
       getFrpAnalytics(startDate, endDate),
@@ -50,16 +95,30 @@ export default function AnalyticsOverview() {
     return () => {
       active = false;
     };
-  }, [period]);
+  }, [period, startDate, endDate]);
 
   return (
     <div className="analytics-content">
       {/* Period Selector */}
-      <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <div style={{ fontSize: "14px", color: "#94a3b8" }}>
-          Analyzing validated pilot matching period: <strong>{period === "2024-03" ? "March 2024 (MODIS 61.03 era)" : "March 2012 (MODIS 6.03 era)"}</strong>
+      <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+        <div style={{ fontSize: "14px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span>Analyzing period:</span>
+          <strong style={{ color: "#f8fafc" }}>{selectedObj.label}</strong>
+          <span
+            style={{
+              padding: "2px 8px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              fontWeight: 700,
+              background: currentStatus === "VALIDATED" ? "rgba(16, 185, 129, 0.2)" : "rgba(14, 165, 233, 0.2)",
+              color: currentStatus === "VALIDATED" ? "#34d399" : "#38bdf8",
+              border: `1px solid ${currentStatus === "VALIDATED" ? "#059669" : "#0284c7"}`,
+            }}
+          >
+            {currentStatus}
+          </span>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
           <button
             type="button"
             className={`btn-period ${period === "2024-03" ? "active" : ""}`}
@@ -94,6 +153,24 @@ export default function AnalyticsOverview() {
           >
             March 2012 Pilot
           </button>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            style={{
+              padding: "6px 12px",
+              background: "#0f172a",
+              color: "#f8fafc",
+              border: "1px solid #334155",
+              borderRadius: "4px",
+              fontSize: "12px",
+            }}
+          >
+            {availablePeriods.map((p) => (
+              <option key={p.period_id} value={p.period_id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 

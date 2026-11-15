@@ -17,8 +17,8 @@ import SettingsPage from "./components/SettingsPage";
 import DocumentationPage from "./components/DocumentationPage";
 
 const initialFilters = {
-  start: "2024-03-01",
-  end: "2024-03-31",
+  start: "2012-01-21",
+  end: "2026-07-14",
   sensor: "BOTH",
   platform: "ALL",
   daynight: "ALL",
@@ -249,8 +249,71 @@ function App() {
                   <label className="filter-control"><Radio size={15} /><span>Platform</span><select aria-label="Platform" value={filters.platform} onChange={(e) => updateFilter("platform", e.target.value)}>{platforms.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></label>
                   <label className="filter-control"><Zap size={15} /><span>Day / Night</span><select aria-label="Day or night" value={filters.daynight} onChange={(e) => updateFilter("daynight", e.target.value)}><option value="ALL">All</option><option value="D">Day</option><option value="N">Night</option></select></label>
                 </div>
-                <div className="filter-note">
-                  Common comparison window: Jan 21, 2012 – Jul 14, 2026 (UTC). Validated pilot matching periods: March 2012 and March 2024.
+                <div className="filter-presets" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
+                  <span style={{ fontSize: "12px", color: "#94a3b8", alignSelf: "center", fontWeight: 600 }}>PRESETS:</span>
+                  <button
+                    type="button"
+                    style={{
+                      background: filters.start === "2012-01-21" && filters.end === "2026-07-14" ? "#3b82f6" : "#1e293b",
+                      color: "#fff",
+                      border: "1px solid #475569",
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setFilters((current) => ({ ...current, start: "2012-01-21", end: "2026-07-14" }))}
+                  >
+                    Full Archive (2012–2026)
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      background: filters.start === "2024-03-01" && filters.end === "2024-03-31" ? "#3b82f6" : "#1e293b",
+                      color: "#fff",
+                      border: "1px solid #475569",
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setFilters((current) => ({ ...current, start: "2024-03-01", end: "2024-03-31" }))}
+                  >
+                    March 2024 Pilot
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      background: filters.start === "2012-03-01" && filters.end === "2012-03-31" ? "#3b82f6" : "#1e293b",
+                      color: "#fff",
+                      border: "1px solid #475569",
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setFilters((current) => ({ ...current, start: "2012-03-01", end: "2012-03-31" }))}
+                  >
+                    March 2012 Pilot
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      background: filters.start === "2024-04-01" && filters.end === "2024-04-30" ? "#3b82f6" : "#1e293b",
+                      color: "#fff",
+                      border: "1px solid #475569",
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setFilters((current) => ({ ...current, start: "2024-04-01", end: "2024-04-30" }))}
+                  >
+                    April 2024 (Matched)
+                  </button>
+                </div>
+                <div className="filter-note" style={{ marginTop: "8px" }}>
+                  Full observation archive: Jan 21, 2012 – Jul 14, 2026 (UTC). Note: VIIRS Suomi-NPP observations conclude Jul 10, 2026. Cross-sensor candidate matching is processed for pilot & audited monthly windows.
                 </div>
                 {filters.start > filters.end && <div className="filter-error">Start date must be earlier than or equal to end date.</div>}
                 <div className="active-filter-summary">
@@ -260,7 +323,7 @@ function App() {
 
               <section className="section-heading">
                 <div><h2>Detection summary</h2><p>Satellite observation records across selected period ({filters.start} to {filters.end})</p></div>
-                <span className="section-tag"><span /> {summary?.matching_available ? "MATCHED PILOT PERIOD" : "SENSORS OVERVIEW"}</span>
+                <span className="section-tag"><span /> {summary?.matching_available ? "MATCHED PERIOD" : "FULL OBSERVATION ARCHIVE"}</span>
               </section>
 
               {summaryError && <div className="summary-error" role="alert">Summary unavailable: {summaryError}</div>}
@@ -284,7 +347,7 @@ function App() {
                           {hidden
                             ? "Not selected"
                             : item.label.includes("PAIRS") && !summary?.matching_available
-                              ? "Unavailable (Pilot periods only)"
+                              ? "Cross-sensor matching not yet processed"
                               : item.sub}
                         </span>
                       </div>

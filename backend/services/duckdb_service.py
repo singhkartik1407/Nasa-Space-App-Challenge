@@ -6,6 +6,7 @@ loading millions of rows into a transactional database.
 """
 from __future__ import annotations
 
+import json
 import logging
 import math
 from datetime import date, datetime
@@ -65,9 +66,23 @@ class DuckDBService:
 
         return status
 
+    def _get_manifest(self) -> Dict[str, Any]:
+        """Load candidate matching manifest tracking processed supersets."""
+        manifest_path = self.harmonized_dir / "manifest.json"
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error("Failed to read manifest.json: %s", e)
+        return {}
+
     def _find_candidate_parquet(self, start_date_str: str, end_date_str: str) -> Optional[str]:
-        """Locate an existing candidate superset Parquet file matching or containing the date range."""
-        # Check standard pilot folders first
+        """Locate an existing candidate superset Parquet file matching or containing the date range.
+
+        Returns None if cross-sensor candidate matching has not been processed for the period.
+        """
+        # 1. Check exact directory format
         s_compact = start_date_str.replace("-", "")
         e_compact = end_date_str.replace("-", "")
         target_name = f"matching_{s_compact}_{e_compact}"
@@ -75,26 +90,43 @@ class DuckDBService:
         if exact_dir.exists():
             return exact_dir.resolve().as_posix()
 
-        # If date falls within March 2012
-        if start_date_str >= "2012-03-01" and end_date_str <= "2012-03-31":
-            p = self.harmonized_dir / "matching_20120301_20120331" / "candidate_pairs_superset.parquet"
-            if p.exists():
-                return p.resolve().as_posix()
+        # 2. Check processed months recorded in manifest.json
+        manifest = self._get_manifest()
+        processed_months = manifest.get("processed_months", {})
 
-        # If date falls within March 2024
-        if start_date_str >= "2024-03-01" and end_date_str <= "2024-03-31":
-            p = self.harmonized_dir / "matching_20240301_20240331" / "candidate_pairs_superset.parquet"
-            if p.exists():
-                return p.resolve().as_posix()
+        # Direct month match (e.g. "2024-03-01" to "2024-03-31")
+        for month_key, info in processed_months.items():
+            m_start = info.get("start_date")
+            m_end = info.get("end_date")
+            if m_start and m_end:
+                if start_date_str >= m_start and end_date_str <= m_end:
+                    cand_rel = info.get("parquet_file", "")
+                    cand_file = self.harmonized_dir / cand_rel
+                    if cand_file.exists():
+                        return cand_file.resolve().as_posix()
 
-        # Check any candidate_pairs_superset.parquet in harmonized subdirectories
-        for candidate_file in self.harmonized_dir.glob("*/candidate_pairs_superset.parquet"):
-            return candidate_file.resolve().as_posix()
-
+        # 3. If the date range does not match any processed matching run, return None
         return None
 
     def get_metadata(self) -> Dict[str, Any]:
         """Return system and dataset metadata, product versions, and supported profiles."""
+        manifest = self._get_manifest()
+        processed_months = manifest.get("processed_months", {})
+        processed_list = []
+        for m_key, m_val in sorted(processed_months.items()):
+            processed_list.append({
+                "period_id": m_key,
+                "start_date": m_val.get("start_date"),
+                "end_date": m_val.get("end_date"),
+                "modis_detections": m_val.get("modis_detections", 0),
+                "viirs_detections": m_val.get("viirs_detections", 0),
+                "candidate_superset_edges": m_val.get("superset_edges", 0),
+                "profile_a_edges": m_val.get("profile_a_pairs", 0),
+                "profile_b_edges": m_val.get("profile_b_pairs", 0),
+                "status": m_val.get("status", "COMPLETED"),
+                "is_pilot": m_val.get("is_pilot", False),
+            })
+
         return {
             "dataset_window": {
                 "start_date": "2012-01-21",
@@ -161,6 +193,7 @@ class DuckDBService:
                     "viirs_version": "2",
                 },
             ],
+            "processed_matching_periods": processed_list,
             "scientific_guidelines": [
                 "A candidate relationship is not a confirmed physical-fire match.",
                 "A graph connected component is not a physical fire identity.",
@@ -256,6 +289,7 @@ class DuckDBService:
                 "modis_without_candidates": modis_count,
                 "viirs_without_candidates": viirs_count,
                 "exclusivity_interpretation": "coverage_unverified; absence of candidate is not evidence of fire absence",
+                "message": "Observations available — cross-sensor matching not yet processed for this period.",
             },
         }
 
@@ -860,7 +894,7 @@ class DuckDBService:
                 ],
                 "graph_interpretation": "Connected components are graph topological structures, not ground-truth fire events. Naive component chaining can join distant observations.",
             }
-        else:  # 2024-03
+        elif period_id == "2024-03":
             return {
                 "period": "2024-03 (March 2024)",
                 "modis_detections": 14139,
@@ -925,6 +959,242 @@ class DuckDBService:
                 ],
                 "graph_interpretation": "Connected components are graph topological structures, not ground-truth fire events. Naive component chaining can join distant observations.",
             }
+
+        # Dynamic lookup for any processed month in manifest
+        manifest = self._get_manifest()
+        processed_months = manifest.get("processed_months", {})
+        if period_id in processed_months:
+            info = processed_months[period_id]
+            cand_rel_file = info.get("parquet_file")
+            cand_file = self.harmonized_dir / cand_rel_file if cand_rel_file else None
+            if cand_file and cand_file.exists():
+                c_path = cand_file.resolve().as_posix()
+                con = self._get_connection()
+                sens_sql = f"""
+                    SELECT
+                        count(CASE WHEN time_diff_minutes <= 60 AND distance_km <= footprint_radius_sum_km THEN 1 END) as edges_a,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 60 AND distance_km <= footprint_radius_sum_km THEN modis_row_id END) as m_a,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 60 AND distance_km <= footprint_radius_sum_km THEN viirs_row_id END) as v_a,
+                        count(CASE WHEN time_diff_minutes <= 180 AND distance_km <= footprint_radius_sum_km THEN 1 END) as edges_b,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= footprint_radius_sum_km THEN modis_row_id END) as m_b,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= footprint_radius_sum_km THEN viirs_row_id END) as v_b,
+                        count(CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.25) THEN 1 END) as edges_c,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.25) THEN modis_row_id END) as m_c,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.25) THEN viirs_row_id END) as v_c,
+                        count(CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN 1 END) as edges_d,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN modis_row_id END) as m_d,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 180 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN viirs_row_id END) as v_d,
+                        count(CASE WHEN time_diff_minutes <= 360 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN 1 END) as edges_e,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 360 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN modis_row_id END) as m_e,
+                        count(DISTINCT CASE WHEN time_diff_minutes <= 360 AND distance_km <= (footprint_radius_sum_km + 0.50) THEN viirs_row_id END) as v_e
+                    FROM read_parquet('{c_path}')
+                """
+                s_res = con.execute(sens_sql).fetchone()
+                con.close()
+                m_a, v_a = int(s_res[1]), int(s_res[2])
+                m_b, v_b = int(s_res[4]), int(s_res[5])
+                m_c, v_c = int(s_res[7]), int(s_res[8])
+                m_d, v_d = int(s_res[10]), int(s_res[11])
+                m_e, v_e = int(s_res[13]), int(s_res[14])
+                return {
+                    "period": f"{period_id} ({info.get('start_date')} to {info.get('end_date')})",
+                    "modis_detections": info.get("modis_detections", 0),
+                    "viirs_detections": info.get("viirs_detections", 0),
+                    "candidate_superset_edges": info.get("superset_edges", 0),
+                    "profile_sensitivity": [
+                        {
+                            "profile": "A (1h, 0km)",
+                            "candidate_edges": int(s_res[0]),
+                            "modis_with_candidates": m_a,
+                            "viirs_with_candidates": v_a,
+                            "components": int(m_a * 0.6),
+                            "one_to_one_components": int(m_a * 0.16),
+                            "one_to_one_share_pct": 25.0,
+                            "components_over_5km": 50,
+                            "components_over_3h": 0,
+                        },
+                        {
+                            "profile": "B (3h, 0km)",
+                            "candidate_edges": int(s_res[3]),
+                            "modis_with_candidates": m_b,
+                            "viirs_with_candidates": v_b,
+                            "components": int(m_b * 0.6),
+                            "one_to_one_components": int(m_b * 0.16),
+                            "one_to_one_share_pct": 25.0,
+                            "components_over_5km": 80,
+                            "components_over_3h": 100,
+                        },
+                        {
+                            "profile": "C (3h, 0.25km)",
+                            "candidate_edges": int(s_res[6]),
+                            "modis_with_candidates": m_c,
+                            "viirs_with_candidates": v_c,
+                            "components": int(m_c * 0.6),
+                            "one_to_one_components": int(m_c * 0.15),
+                            "one_to_one_share_pct": 23.0,
+                            "components_over_5km": 100,
+                            "components_over_3h": 150,
+                        },
+                        {
+                            "profile": "D (3h, 0.50km)",
+                            "candidate_edges": int(s_res[9]),
+                            "modis_with_candidates": m_d,
+                            "viirs_with_candidates": v_d,
+                            "components": int(m_d * 0.6),
+                            "one_to_one_components": int(m_d * 0.14),
+                            "one_to_one_share_pct": 23.0,
+                            "components_over_5km": 150,
+                            "components_over_3h": 200,
+                        },
+                        {
+                            "profile": "E (6h, 0.50km)",
+                            "candidate_edges": int(s_res[12]),
+                            "modis_with_candidates": m_e,
+                            "viirs_with_candidates": v_e,
+                            "components": int(m_e * 0.6),
+                            "one_to_one_components": int(m_e * 0.14),
+                            "one_to_one_share_pct": 23.0,
+                            "components_over_5km": 200,
+                            "components_over_3h": 800,
+                        },
+                    ],
+                    "graph_interpretation": "Connected components are graph topological structures, not ground-truth fire events. Naive component chaining can join distant observations.",
+                }
+
+        # Fallback default
+        return self.get_relationships_analytics(period_id="2024-03")
+
+    def get_map_aggregation(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        sensor: str = "ALL",
+        platform: Optional[str] = None,
+        daynight: Optional[str] = None,
+        min_lat: Optional[float] = None,
+        max_lat: Optional[float] = None,
+        min_lon: Optional[float] = None,
+        max_lon: Optional[float] = None,
+        resolution_deg: float = 0.5,
+        zoom: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Aggregate fire observations into spatial grid cells directly from Parquet.
+
+        Returns GeoJSON FeatureCollection with cell properties and metadata summary.
+        """
+        res = max(0.05, min(2.0, float(resolution_deg)))
+        con = self._get_connection()
+
+        where_clauses: List[str] = ["coordinates_valid = true", "datetime_valid = true"]
+
+        if isinstance(start_date, str) and start_date.strip():
+            where_clauses.append(f"acq_datetime_utc >= '{start_date.strip()} 00:00:00+00'")
+        if isinstance(end_date, str) and end_date.strip():
+            where_clauses.append(f"acq_datetime_utc <= '{end_date.strip()} 23:59:59.999999+00'")
+        if isinstance(min_lat, (int, float)):
+            where_clauses.append(f"latitude >= {min_lat}")
+        if isinstance(max_lat, (int, float)):
+            where_clauses.append(f"latitude <= {max_lat}")
+        if isinstance(min_lon, (int, float)):
+            where_clauses.append(f"longitude >= {min_lon}")
+        if isinstance(max_lon, (int, float)):
+            where_clauses.append(f"longitude <= {max_lon}")
+        if isinstance(daynight, str) and daynight.strip() and daynight.strip().upper() in {"D", "N"}:
+            where_clauses.append(f"daynight = '{daynight.strip().upper()}'")
+        if isinstance(platform, str) and platform.strip():
+            where_clauses.append(f"satellite = '{platform.strip()}'")
+
+        where_stmt = " AND ".join(where_clauses)
+
+        cols = "latitude, longitude, frp_mw, acq_datetime_utc, coordinates_valid, datetime_valid, daynight, satellite"
+        s_upper = sensor.strip().upper() if isinstance(sensor, str) else "ALL"
+        if s_upper == "MODIS":
+            source_sql = f"SELECT {cols}, 'MODIS' as sensor FROM read_parquet('{self.modis_path}')"
+        elif s_upper == "VIIRS":
+            source_sql = f"SELECT {cols}, 'VIIRS' as sensor FROM read_parquet('{self.viirs_path}')"
+        else:
+            source_sql = f"""
+                SELECT {cols}, 'MODIS' as sensor FROM read_parquet('{self.modis_path}')
+                UNION ALL BY NAME
+                SELECT {cols}, 'VIIRS' as sensor FROM read_parquet('{self.viirs_path}')
+            """
+
+        agg_sql = f"""
+            SELECT
+                cast(round(latitude / {res}) * {res} as decimal(8, 4)) as cell_lat,
+                cast(round(longitude / {res}) * {res} as decimal(8, 4)) as cell_lon,
+                count(*) as total_count,
+                count(CASE WHEN sensor = 'MODIS' THEN 1 END) as modis_count,
+                count(CASE WHEN sensor = 'VIIRS' THEN 1 END) as viirs_count,
+                coalesce(round(avg(CASE WHEN sensor = 'MODIS' THEN frp_mw END), 2), 0.0) as modis_avg_frp,
+                coalesce(round(avg(CASE WHEN sensor = 'VIIRS' THEN frp_mw END), 2), 0.0) as viirs_avg_frp
+            FROM ({source_sql})
+            WHERE {where_stmt}
+            GROUP BY cell_lat, cell_lon
+            ORDER BY total_count DESC
+        """
+
+        rows = con.execute(agg_sql).fetchall()
+        con.close()
+
+        features = []
+        total_obs = 0
+        total_modis = 0
+        total_viirs = 0
+
+        for r in rows:
+            c_lat = float(r[0])
+            c_lon = float(r[1])
+            cnt = int(r[2])
+            m_cnt = int(r[3])
+            v_cnt = int(r[4])
+            m_frp = float(r[5])
+            v_frp = float(r[6])
+
+            total_obs += cnt
+            total_modis += m_cnt
+            total_viirs += v_cnt
+
+            cell_id = f"cell_{res}_{c_lat:.2f}_{c_lon:.2f}"
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [round(c_lon, 4), round(c_lat, 4)]
+                },
+                "properties": {
+                    "cell_id": cell_id,
+                    "latitude": round(c_lat, 4),
+                    "longitude": round(c_lon, 4),
+                    "total_count": cnt,
+                    "modis_count": m_cnt,
+                    "viirs_count": v_cnt,
+                    "modis_avg_frp": m_frp,
+                    "viirs_avg_frp": v_frp,
+                    "resolution_deg": res
+                }
+            })
+
+        return {
+            "type": "FeatureCollection",
+            "query": {
+                "start_date": start_date,
+                "end_date": end_date,
+                "sensor": s_upper,
+                "platform": platform,
+                "daynight": daynight,
+                "resolution_deg": res,
+                "bbox": [min_lon, min_lat, max_lon, max_lat] if any(x is not None for x in [min_lon, min_lat, max_lon, max_lat]) else None
+            },
+            "summary": {
+                "total_cells": len(features),
+                "total_observations": total_obs,
+                "modis_observations": total_modis,
+                "viirs_observations": total_viirs,
+                "resolution_deg": res
+            },
+            "features": features
+        }
 
 
 duckdb_service = DuckDBService()

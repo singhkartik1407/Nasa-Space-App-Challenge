@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
   overview: "/overview",
   detections: "/detections",
   detection: (rowId: string) => `/detections/${encodeURIComponent(rowId)}`,
+  mapAggregate: "/map/aggregate",
   candidates: "/candidates",
   candidate: (candidateId: string) => `/candidates/${encodeURIComponent(candidateId)}`,
   activity: "/analytics/activity",

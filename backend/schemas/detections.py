@@ -64,3 +64,36 @@ class DetectionDetailResponse(BaseModel):
     source_row: Optional[int] = None
     candidate_matches_count: int = 0
     candidate_matches: List[CandidateMatchSummary] = []
+
+
+class MapAggregateCellProperties(BaseModel):
+    cell_id: str
+    latitude: float
+    longitude: float
+    total_count: int
+    modis_count: int
+    viirs_count: int
+    modis_avg_frp: float
+    viirs_avg_frp: float
+    resolution_deg: float
+
+
+class MapAggregateFeature(BaseModel):
+    type: str = "Feature"
+    geometry: Dict[str, Any]  # {"type": "Point", "coordinates": [lon, lat]}
+    properties: MapAggregateCellProperties
+
+
+class MapAggregateSummary(BaseModel):
+    total_cells: int
+    total_observations: int
+    modis_observations: int
+    viirs_observations: int
+    resolution_deg: float
+
+
+class MapAggregateResponse(BaseModel):
+    type: str = "FeatureCollection"
+    query: Dict[str, Any]
+    summary: MapAggregateSummary
+    features: List[MapAggregateFeature]

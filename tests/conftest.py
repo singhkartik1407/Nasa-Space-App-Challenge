@@ -14,7 +14,7 @@ from backend.routers.analytics import (
     get_sensors_analytics,
 )
 from backend.routers.candidates import get_candidate, list_candidates
-from backend.routers.detections import get_detection, list_detections
+from backend.routers.detections import get_detection, get_map_aggregation, list_detections
 from backend.routers.health import get_health, get_ready
 from backend.routers.jobs import (
     create_matching_job,
@@ -72,6 +72,29 @@ class DirectAppClient:
                 e_date = query.get("end_date", "2024-03-31")
                 prof = query.get("profile", "A")
                 res = get_overview(start_date=s_date, end_date=e_date, profile=prof)
+                return MockResponse(200, res)
+
+            elif path == "/api/v1/map/aggregate":
+                kwargs = {
+                    "sensor": query.get("sensor", "ALL"),
+                    "start_date": query.get("start_date"),
+                    "end_date": query.get("end_date"),
+                    "platform": query.get("platform"),
+                    "daynight": query.get("daynight"),
+                    "resolution_deg": float(query.get("resolution_deg", 0.5)),
+                }
+                if "min_lat" in query:
+                    kwargs["min_lat"] = float(query["min_lat"])
+                if "max_lat" in query:
+                    kwargs["max_lat"] = float(query["max_lat"])
+                if "min_lon" in query:
+                    kwargs["min_lon"] = float(query["min_lon"])
+                if "max_lon" in query:
+                    kwargs["max_lon"] = float(query["max_lon"])
+                if "zoom" in query:
+                    kwargs["zoom"] = float(query["zoom"])
+
+                res = get_map_aggregation(**kwargs)
                 return MockResponse(200, res)
 
             elif path == "/api/v1/detections":

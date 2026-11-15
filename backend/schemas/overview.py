@@ -35,6 +35,7 @@ class MatchingOverviewSummary(BaseModel):
     viirs_without_candidates: int
     exclusivity_interpretation: str
     candidate_source_file: Optional[str] = None
+    message: Optional[str] = None
 
 
 class ProfileBrief(BaseModel):
