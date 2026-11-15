@@ -25,7 +25,7 @@ OUR PROJECT covers approximately **9.95 million satellite observations**.
 
 ## Screenshots
 
-Add application screenshots to `docs/screenshots/` using the filenames below. Uncomment the matching image line after adding each screenshot.
+Place the screenshots in `docs/screenshots/` using these filenames. After uploading an image, remove the HTML comment around its image line so it appears on GitHub. The folder is included in the repository with a placeholder file.
 
 ### Dashboard
 
@@ -76,7 +76,7 @@ Data source: [NASA FIRMS — Active Fire Data](https://firms.modaps.eosdis.nasa.
 - Python 3.11–3.13
 - Node.js and npm
 - Git
-- Google Maps API key (and a configured Map ID for the map setup)
+- Google Maps API key (a Map ID can be supplied for the configured map style)
 
 ### 1. Clone the repository
 
@@ -122,6 +122,7 @@ Create `frontend/.env.local` with your own Google Maps credentials:
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
 VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
+# Optional: provide a Google Maps Map ID when using a configured map style
 VITE_GOOGLE_MAPS_MAP_ID=YOUR_GOOGLE_MAPS_MAP_ID
 ```
 
