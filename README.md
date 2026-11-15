@@ -155,10 +155,5 @@ The backend and frontend start in separate Command Prompt windows.
 
 A satellite detection is a thermal-anomaly observation, not necessarily a separate physical wildfire. Cross-sensor candidate pairs indicate possible spatial and temporal associations; they are not confirmed fire matches. MODIS and VIIRS FRP and confidence values must be interpreted separately.
 
-## AI-Assisted Development Disclosure
-
-ChatGPT and Antigravity were used to assist with coding, debugging, testing support and documentation. The team reviewed and integrated the resulting work. The original NASA satellite observations were not generated or modified by these tools. No SI-generated images, videos or audio are included.
-
----
 
 **FireScope — Making satellite fire observations easier to explore, compare and understand.**
