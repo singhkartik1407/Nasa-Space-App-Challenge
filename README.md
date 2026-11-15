@@ -1,165 +1,164 @@
-# FireScope — Active Fire Harmonization Platform
+# FireScope — Satellite Fire Intelligence for India
 
-FireScope is an active-fire satellite observation harmonization and analysis platform bridging NASA FIRMS data across two sensor families:
-- **MODIS** Collection 6.1 (Terra and Aqua satellites)
-- **Suomi-NPP VIIRS** Collection 2 (375 m nominal resolution)
+## What is FireScope?
 
-The system features:
-- High-performance analytical queries directly over normalized Parquet files (9.95M+ observations) using an embedded **DuckDB** engine.
-- Cross-sensor candidate relationship matching evaluating footprint overlap and temporal proximity under **Profile A** (conservative default: $\Delta t \le 1\,\text{h}$, $0\,\text{km}$ buffer) and **Profile B** (alternative: $\Delta t \le 3\,\text{h}$, $0\,\text{km}$ buffer).
-- Production-grade **FastAPI** backend with automated testing, SQLite local metadata persistence, and PostgreSQL-ready schema.
-- **Tests:** 30 automated unit and regression tests passing (`scripts\test_backend.cmd`).
-- Multi-resolution spatial aggregation (`GET /api/v1/map/aggregate`) rendering national overview (0.5°), regional grid (0.15°), and individual local detections with telemetry popups.
-- Dual basemap architecture: MapLibre (OSM) rock-solid default with Google Maps (deck.gl) overlay support.
-- Progressive historical candidate matching runner (`scripts\batch_match_historical.py`) with manifest tracking (`data\harmonized\manifest.json`).
+**FireScope is OUR PROJECT**: a satellite-based fire intelligence platform for exploring and analyzing historical active-fire observations across India.
 
----
+OUR PROJECT brings together observations from NASA's MODIS Terra/Aqua and Suomi-NPP VIIRS satellite instruments in one interactive dashboard.
 
-## Important Scientific Ground Rules
+## Purpose
 
-1. **Observations vs Fires:** A FIRMS record is a satellite active-fire/thermal-anomaly pixel detection, not automatically an isolated physical wildfire.
-2. **Candidate Correspondences:** Cross-sensor pairs indicate spatiotemporal proximity within combined footprint bounds; they are **not confirmed ground-truth matches**.
-3. **Coverage Unverified:** Absence of a counterpart detection is labeled as `coverage_unverified`, never as "false detection" or "sensor-exclusive".
-4. **Instrument-Separated FRP:** Fire Radiative Power (MW) differs across instruments due to pixel footprint and sensor saturation characteristics. **Never sum MODIS and VIIRS FRP together**.
-5. **Canonical Timezone:** All internal calculations, filtering, and storage operate in **UTC**. Displays in Indian Standard Time (IST) are labeled explicitly.
-6. **Product Versions:** MODIS transitioned from `6.03` (2012–2022) to `61.03` (2023–2026); VIIRS is version `2`. Version strings are preserved verbatim.
-7. **Graph Connected Components:** Connected components of candidate pairs are mathematical graph groupings, not distinct wildfire events.
+Satellite instruments observe active-fire and thermal anomalies at different spatial resolutions and acquisition times. Comparing their observations can be challenging.
 
----
+OUR PROJECT makes these datasets easier to explore together by visualizing their geographic distribution, analyzing sensor-specific measurements and identifying possible cross-sensor relationships.
 
-## Audited Pilot Period & Full Historical Archive Reconciliation
+## What OUR PROJECT Does
 
-The backend and frontend strictly reproduce the verified benchmark reconciliation counts across both pilot periods, and maintain 100% mathematical consistency across all 175 months in the historical common observation archive:
+- **Interactive Fire Map:** Explore satellite observations across India using Google Maps and deck.gl, with independent MODIS and VIIRS layer controls.
+- **Multi-Resolution Mapping:** View aggregated observation patterns nationally and regionally, then inspect individual detections at closer zoom levels.
+- **Historical Activity Calendar:** Explore monthly observation patterns across the available 2012–2026 archive.
+- **Sensor Analytics:** Compare MODIS and VIIRS observations, including sensor-specific Fire Radiative Power (FRP) and confidence information.
+- **Cross-Sensor Matching:** Identify candidate relationships using spatial distance, satellite footprint and acquisition-time criteria.
+- **Match Explorer:** Inspect candidate pairs, their geographic separation, time difference and sensor-specific attributes.
 
-| Period | Status | MODIS Detections | VIIRS Detections | Profile A Pairs ($\Delta t \le 1\text{h}$) | Profile B Pairs ($\Delta t \le 3\text{h}$) | Superset Edges ($\Delta t \le 6\text{h}$) |
-|---|:---:|---:|---:|---:|---:|---:|
-| **March 2012 (Pilot)** | VALIDATED | 30,161 | 182,644 | 44,941 | 60,179 | 86,863 |
-| **March 2024 (Pilot)** | VALIDATED | 14,139 | 103,369 | 19,949 | 24,815 | 38,250 |
-| **Full Archive (175 Months)** | 173 COMPLETED, 2 VALIDATED | 1,232,096 | 8,725,086 | 1,319,525 | 1,815,450 | 2,753,852 |
+OUR PROJECT covers approximately **9.95 million satellite observations**.
 
-### Scientific Consistency Audit Deliverables
-- `historical_profile_consistency.csv` — Monthly profile definitions and validation against canonical A (1h, 0km) and B (3h, 0km).
-- `historical_superset_envelope_audit.csv` — Full archive screening envelope verification ($\Delta t \le 6.0\,\text{h}$, buffer $\le 0.50\,\text{km}$).
-- `historical_boundary_completeness_audit.csv` — Empirical separate vs combined window comparisons and orbital overpass analysis.
-- `historical_manifest_integrity.csv` — Per-month Parquet file presence, row counts, candidate ID types, and duplicate checks.
-- `historical_candidate_totals_by_profile.csv` — Annual breakdown of observations and candidate pairs across profiles A, B, C, D, and E.
-- `FIRESCOPE_FINAL_SCIENTIFIC_CONSISTENCY_REPORT.md` — Authoritative final engineering audit report.
+## Screenshots
 
----
+Add application screenshots to `docs/screenshots/` using the filenames below. Uncomment the matching image line after adding each screenshot.
 
-## Windows Command Prompt (CMD) Execution
+### Dashboard
 
-All operations must be run using standard Windows Command Prompt (`cmd.exe`). Do not use PowerShell.
+<!-- ![FireScope Dashboard](docs/screenshots/dashboard.png) -->
+<!-- Screenshot file: docs/screenshots/dashboard.png -->
 
-### 1. One-Click Full Demo Launcher
+### Fire Map
 
-To launch both the FastAPI backend and the Vite frontend simultaneously in dedicated windows:
+<!-- ![FireScope Fire Map](docs/screenshots/fire-map.png) -->
+<!-- Screenshot file: docs/screenshots/fire-map.png -->
+
+### Analytics
+
+<!-- ![FireScope Analytics](docs/screenshots/analytics.png) -->
+<!-- Screenshot file: docs/screenshots/analytics.png -->
+
+### Match Explorer
+
+<!-- ![FireScope Match Explorer](docs/screenshots/match-explorer.png) -->
+<!-- Screenshot file: docs/screenshots/match-explorer.png -->
+
+## Data Sources & Attribution
+
+OUR PROJECT uses active-fire and thermal-anomaly observations distributed through **NASA's Fire Information for Resource Management System (FIRMS)**.
+
+- **MODIS Collection 6.1:** Terra and Aqua satellite observations.
+- **VIIRS Collection 2:** Suomi-NPP satellite observations, with a nominal spatial resolution of 375 metres.
+
+The original satellite observations are sourced from NASA FIRMS. OUR PROJECT processes, harmonizes, visualizes and analyzes the supplied datasets; the observations themselves are not generated by OUR PROJECT.
+
+Data source: [NASA FIRMS — Active Fire Data](https://firms.modaps.eosdis.nasa.gov/active_fire/)
+
+## Technology Stack
+
+| Area | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Maps & Visualization | Google Maps JavaScript API, deck.gl |
+| Backend | Python, FastAPI |
+| Data Analytics | DuckDB, Parquet |
+| Metadata Persistence | SQLAlchemy, SQLite |
+| API | REST |
+
+## Run OUR PROJECT Locally
+
+### Prerequisites
+
+- Python 3.11–3.13
+- Node.js and npm
+- Git
+- Google Maps API key (and a configured Map ID for the map setup)
+
+### 1. Clone the repository
+
+Run these commands in Windows Command Prompt:
 
 ```cmd
-cd /d D:\FireScope
+git clone https://github.com/singhkartik1407/Nasa-Space-App-Challenge.git
+cd Nasa-Space-App-Challenge
+```
+
+### 2. Add the data files
+
+The large Parquet datasets are not stored in this repository. Obtain the prepared data files from the team and place them at the following paths:
+
+```text
+data/
+├── processed/
+│   └── common_period/
+│       ├── modis_common_20120121_20260714.parquet
+│       └── viirs_common_20120121_20260714.parquet
+└── harmonized/
+    └── (historical matching outputs and manifest)
+```
+
+The common-period Parquet files are required for the main observation dashboard and map. Historical matching outputs are required for the corresponding candidate-matching and relationship-analysis views.
+
+### 3. Set up the backend
+
+Create and activate a virtual environment, then run the setup script:
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+scripts\setup_backend.cmd
+```
+
+The setup script installs the Python dependencies and checks whether the required data files are available.
+
+### 4. Configure and install the frontend
+
+Create `frontend/.env.local` with your own Google Maps credentials:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
+VITE_GOOGLE_MAPS_MAP_ID=YOUR_GOOGLE_MAPS_MAP_ID
+```
+
+Install the frontend dependencies:
+
+```cmd
+cd frontend
+npm ci
+cd ..
+```
+
+Do not commit `.env.local` or expose API credentials.
+
+### 5. Start the application
+
+From the repository root, run:
+
+```cmd
 scripts\run_demo.cmd
 ```
 
-This spawns:
-- **Backend API:** `http://127.0.0.1:8000` (Docs: `http://127.0.0.1:8000/docs`)
-- **Frontend UI:** `http://127.0.0.1:5173`
+The backend and frontend start in separate Command Prompt windows.
 
-### 2. Individual Service Launchers
+| Service | Local URL |
+|---|---|
+| FireScope Web App | http://127.0.0.1:5173 |
+| Backend API | http://127.0.0.1:8000 |
+| Interactive API Docs | http://127.0.0.1:8000/docs |
 
-**Backend Setup & Launch:**
-```cmd
-cd /d D:\FireScope
-scripts\setup_backend.cmd
-scripts\run_backend.cmd
-```
+## Scientific Interpretation
 
-**Frontend Dev Server:**
-```cmd
-cd /d D:\FireScope
-scripts\run_frontend.cmd
-```
+A satellite detection is a thermal-anomaly observation, not necessarily a separate physical wildfire. Cross-sensor candidate pairs indicate possible spatial and temporal associations; they are not confirmed fire matches. MODIS and VIIRS FRP and confidence values must be interpreted separately.
 
-### 3. Automated Test Suites
+## AI-Assisted Development Disclosure
 
-**Backend Tests (26 Pytest + Direct Handler Checks):**
-```cmd
-cd /d D:\FireScope
-scripts\test_backend.cmd
-```
-
-**Frontend Checks (TypeScript strict check + Vite production build):**
-```cmd
-cd /d D:\FireScope
-scripts\test_frontend.cmd
-```
+ChatGPT and Antigravity were used to assist with coding, debugging, testing support and documentation. The team reviewed and integrated the resulting work. The original NASA satellite observations were not generated or modified by these tools. No SI-generated images, videos or audio are included.
 
 ---
 
-## Application Structure
-
-```
-D:\FireScope\
-├── data/
-│   ├── processed/common_period/      <- Read-only normalized Parquet inputs (MODIS: 1.23M rows, VIIRS: 8.73M rows)
-│   └── harmonized/                   <- Harmonized candidate superset Parquet files (2012-03, 2024-03)
-├── backend/
-│   ├── config.py                     <- Environment settings & CORS
-│   ├── database.py                   <- Metadata DB engine (SQLite fallback, PostgreSQL-ready)
-│   ├── models.py                     <- SQLAlchemy ORM models (MatchingJob, ReviewAnnotation)
-│   ├── domain/thresholds.py          <- Footprint geometry (Haversine, ellipse) and Profiles A-E
-│   ├── services/duckdb_service.py    <- Zero-copy Parquet analytical queries via DuckDB
-│   ├── schemas/                      <- Pydantic v2 schemas for all requests/responses
-│   ├── routers/                      <- FastAPI routers (health, metadata, overview, detections, candidates, analytics, jobs)
-│   └── main.py                       <- FastAPI app factory, CORS, and lifespan
-├── frontend/                         <- React + TypeScript + Vite Web Client
-│   ├── src/
-│   │   ├── components/               <- 8 Integrated Views:
-│   │   │   ├── Dashboard             <- Live overview cards, global date/sensor filters
-│   │   │   ├── FireMap               <- MapLibre WebGL raster map with MODIS/VIIRS overlays & inspection popups
-│   │   │   ├── ActivityCalendar      <- Live monthly observation breakdown per sensor
-│   │   │   ├── AnalyticsOverview     <- Sensor-separated FRP percentiles & Profile sensitivity
-│   │   │   ├── MatchExplorer         <- Profile A/B candidate pairs inspection table
-│   │   │   ├── DataSources           <- Live backend readiness & dataset metadata
-│   │   │   ├── SettingsPage          <- Live backend connectivity, ping latency, & engine stats
-│   │   │   └── DocumentationPage     <- Scientific methodology and data dictionary
-│   │   ├── lib/api/                  <- Type-safe API client adapters
-│   │   └── App.tsx                   <- Global filter state and navigation coordinator
-│   ├── .env                          <- Default environment (VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1)
-│   └── .env.local                    <- Local overrides (never committed)
-├── tests/                            <- 26 unit and regression test cases
-├── scripts/
-│   ├── setup_backend.cmd             <- One-click backend dependency & data setup
-│   ├── run_backend.cmd               <- Launch FastAPI via Uvicorn on 127.0.0.1:8000
-│   ├── test_backend.cmd              <- Run backend test suite
-│   ├── run_frontend.cmd              <- Launch Vite dev server on 127.0.0.1:5173
-│   ├── test_frontend.cmd             <- Run TypeScript verification & Vite build
-│   └── run_demo.cmd                  <- Launch both backend & frontend for demo
-├── API_CONTRACT.md                   <- Complete API contract and frontend integration mapping
-└── IMPLEMENTATION_STATUS.md          <- System implementation and verification report
-```
-
----
-
-## API Surface Overview
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Application liveness probe |
-| `GET` | `/ready` | Parquet data storage readiness and row counts |
-| `GET` | `/api/v1/metadata` | Supported window, sensors, versions, and matching profiles |
-| `GET` | `/api/v1/overview` | High-level summary cards (counts, FRP, matching status) |
-| `GET` | `/api/v1/detections` | Paginated fire detections with viewport, date, sensor, and FRP filters |
-| `GET` | `/api/v1/detections/{row_id}` | Detailed detection inspection with attached candidate matches |
-| `GET` | `/api/v1/map/aggregate` | Multi-resolution spatial aggregation grid cells for national & regional visualization |
-| `GET` | `/api/v1/candidates` | Paginated candidate pairs under Profile A or B with bbox filter |
-| `GET` | `/api/v1/candidates/{candidate_id}` | Complete candidate pair detail and footprint geometry metrics |
-| `GET` | `/api/v1/analytics/activity` | Daily or monthly detection timeseries (UTC or IST) |
-| `GET` | `/api/v1/analytics/frp` | Sensor-separated FRP percentiles (p25, median, p75, p95, max) |
-| `GET` | `/api/v1/analytics/sensors` | MODIS vs VIIRS sensor specifications and product versions |
-| `GET` | `/api/v1/analytics/relationships` | Graph component and degree sensitivity metrics |
-| `POST` | `/api/v1/matching/jobs` | Submit/trigger candidate matching job for a date window |
-| `GET` | `/api/v1/matching/jobs/{job_id}` | Get matching job execution progress and output paths |
-| `POST` | `/api/v1/review/annotations` | Save human/expert adjudication for review sample pairs |
-| `GET` | `/api/v1/review/annotations` | List saved review annotations |
-
-See `API_CONTRACT.md` for full schema details, code examples, and frontend mapping tables.
+**FireScope — Making satellite fire observations easier to explore, compare and understand.**
